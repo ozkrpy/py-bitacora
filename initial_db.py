@@ -5,12 +5,6 @@ from datetime import datetime
 
 dbmodel.create_all()
 
-# j = Jugador(nombre='ANON', numero_camiseta='23', date=datetime.utcnow())
-# dbmodel.session.add(j)
-# j = Jugador(nombre='ANON', numero_camiseta='24', date=datetime.utcnow())
-# dbmodel.session.add(j)
-# j = Jugador(nombre='ANON', numero_camiseta='25', date=datetime.utcnow())
-# dbmodel.session.add(j)
 j = Cargas(date=datetime.utcnow(), 
         fecha_carga=datetime(2019, 12, 25), 
         odometro=10917,
@@ -19,23 +13,12 @@ j = Cargas(date=datetime.utcnow(),
         monto_carga=201215)
 dbmodel.session.add(j)
 dbmodel.session.commit()
-j = Cargas(date=datetime.utcnow(), 
-        fecha_carga=datetime(2020, 1, 8), 
-        odometro=11262,
-        emblema='Petropar Nu Guazu', 
-        precio=6740, 
-        monto_carga=290036)
+j = Cargas(date=datetime.utcnow(), fecha_carga=datetime(2020, 1, 8), odometro=11262, emblema='Petropar Nu Guazu', precio=6740, monto_carga=290036)
 dbmodel.session.add(j)
 dbmodel.session.commit()
-j = Cargas(date=datetime.utcnow(), 
-        fecha_carga=datetime(2020, 1, 23), 
-        odometro=11593,
-        emblema='Petropar Aeropuerto', 
-        precio=6740, 
-        monto_carga=268097)
+j = Cargas(date=datetime.utcnow(), fecha_carga=datetime(2020, 1, 23), odometro=11593, emblema='Petropar Aeropuerto', precio=6740, monto_carga=268097)
 dbmodel.session.add(j)
 dbmodel.session.commit()
-
 j = Cargas(date=datetime.utcnow(),fecha_carga=datetime(day=1, month=2, year=2020), odometro=11769, emblema='texto', precio=6390, monto_carga=127238) 
 dbmodel.session.add(j)
 dbmodel.session.commit()

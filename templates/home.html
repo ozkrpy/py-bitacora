@@ -1,37 +1,51 @@
 {% extends "base.html" %}
 {% block main %}
-<div class="d-flex flex-rowd-flex align-items-center">
-    <h3>COMBUSTIBLE</h3>
+<h1><strong>BITACORA Y FINANZAS</strong></h1>
+<span style="color: grey">Ver. 2.0</span>
+<div class="card-columns">
+    <!-- <div class="card">
+        <div class="card-header">
+            CABECERA
+        </div>
+        <div class="card-body">
+            <p class="card-title">Title</p>
+            <p class="card-subtitle text-muted">Card subtitle</p>
+            <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+            <a href="#" class="card-link">Card link</a>
+            <a href="#" class="card-link">Another link</a>
+        </div>
+        <div class="card-footer text-muted">
+            FOOTER
+        </div>
+    </div> -->
+
+    <div class="card">
+        <div class="card-header">
+            <h3><strong>CARGAS DE COMBUSTIBLE</strong></h3>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
+            <div>
+                <table class="table table-sm">
+                    <tr><td>TOTAL DE RECARGAS Gs.:</td><td><strong>{{ "{:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
+                    <tr><td>PROMEDIO LITROS POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
+                    <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
+                    <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
+                    <tr><td>PROMEDIO DIAS PARA RECARGAS:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
+                </table>
+            </div>
+            <!-- <h4 class="card-title">Title</h4> -->
+            <!-- <p class="card-subtitle text-muted">Card subtitle</p>
+            <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p> -->
+            <table></table>
+            <div class="card-text text-right">
+                <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
+            </div>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="#" class="btn btn-primary">NUEVA RECARGA</a>
+        </div>
+    </div>
 </div>
-<table class="table table-striped">
-    <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>ODO</th>
-          <th>Estacion</th>
-          <th>Precio</th>
-          <th>Monto</th>
-          <th>Lts.</th>
-          <th>Recorrido</th>
-          <th>Lts.x100km</th>
-          <th>Duracion</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for carga in cargas %}
-        <tr>
-            <td>{{ carga.fecha_carga }}</td>
-            <td>{{ carga.odometro }}</td>
-            <td>{{ carga.emblema }}</td>
-            <td>{{ carga.precio }}</td>
-            <td>{{ carga.monto_carga }}</td>
-            <td>{{ '%0.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
-            <td>{{ loop.nextitem.odometro-carga.odometro if not loop.last else "N/D" }}</td>
-            <td>{{ '%0.2f'|format(((carga.monto_carga/carga.precio)*100)/(loop.nextitem.odometro-carga.odometro)|float) if not loop.last else "N/D" }}</td>
-            <td>{{ (loop.nextitem.fecha_carga-carga.fecha_carga).days if not loop.last else "N/D" }} dias.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
 {% endblock %}
 

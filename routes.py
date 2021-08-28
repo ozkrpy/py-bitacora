@@ -1,8 +1,24 @@
 from main import app, db
 from flask import render_template, redirect, url_for, flash, get_flashed_messages, request
-# import forms
 from models import Cargas
 from datetime import datetime
+from utilitarios import referencias_vehiculo
+
+@app.route('/')
+@app.route('/index', methods=['GET', 'POST'])
+def index():
+    # jugadores = Jugador.query.all()
+    # form = forms.SortearForm()
+    cargas = Cargas.query.all()
+    referencias_principales=referencias_vehiculo(cargas)
+    return render_template('home.html', **referencias_principales)
+
+@app.route('/recargas', methods=['GET', 'POST'])
+def recargas():
+    cargas = Cargas.query.all()
+    return render_template('combustible.html', cargas=cargas)
+
+# import forms
 # import random
 # import ast
 # import pytz
@@ -16,14 +32,6 @@ from datetime import datetime
 #             plantel.append(jugador)
 #         distribuidos.append(plantel)
 #     return distribuidos
-
-@app.route('/')
-@app.route('/index', methods=['GET', 'POST'])
-def index():
-    # jugadores = Jugador.query.all()
-    # form = forms.SortearForm()
-    cargas = Cargas.query.all()
-    return render_template('home.html', cargas=cargas)
 
 # @app.route('/add', methods=['GET', 'POST'])
 # def add():
