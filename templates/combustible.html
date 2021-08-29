@@ -1,39 +1,41 @@
 {% extends "base.html" %}
 
 {% block main %}
-<div class="d-flex flex-rowd-flex align-items-center">
-    <h3>COMBUSTIBLE</h3>
-</div>
-<div>
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr>
-            <th>Fecha</th>
-            <th>ODO</th>
-            <th>Estacion</th>
-            <th>Precio</th>
-            <th>Monto</th>
-            <th>Lts.</th>
-            <th>Recorrido</th>
-            <th>Lts.x100km</th>
-            <th>Duracion</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for carga in cargas %}
-            <tr>
-                <td>{{ carga.fecha_carga }}</td>
-                <td>{{ carga.odometro }}</td>
-                <td>{{ carga.emblema }}</td>
-                <td>{{ carga.precio }}</td>
-                <td>{{ carga.monto_carga }}</td>
-                <td>{{ '%0.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
-                <td>{{ loop.nextitem.odometro-carga.odometro if not loop.last else "N/D" }}</td>
-                <td>{{ '%0.2f'|format(((carga.monto_carga/carga.precio)*100)/(loop.nextitem.odometro-carga.odometro)|float) if not loop.last else "N/D" }}</td>
-                <td>{{ (loop.nextitem.fecha_carga-carga.fecha_carga).days if not loop.last else "N/D" }} dias.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card">
+    <div class="d-flex flex-rowd-flex align-items-center">
+        <h3>COMBUSTIBLE</h3>
+    </div>
+    <div>
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                <th>Fecha</th>
+                <th>ODO</th>
+                <th>Estacion</th>
+                <th>Precio</th>
+                <th>Monto</th>
+                <th>Lts.</th>
+                <th>Recorrido</th>
+                <th>Lts.x100km</th>
+                <th>Duracion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for carga in cargas %}
+                <tr>
+                    <td>{{ carga.fecha_carga }}</td>
+                    <td>{{ carga.odometro }}</td>
+                    <td>{{ carga.emblema }}</td>
+                    <td>{{ carga.precio }}</td>
+                    <td>{{ carga.monto_carga }}</td>
+                    <td>{{ '%0.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
+                    <td>{{ loop.nextitem.odometro-carga.odometro if not loop.last else "N/D" }}</td>
+                    <td>{{ '%0.2f'|format(((carga.monto_carga/carga.precio)*100)/(loop.nextitem.odometro-carga.odometro)|float) if not loop.last else "N/D" }}</td>
+                    <td>{{ (loop.nextitem.fecha_carga-carga.fecha_carga).days if not loop.last else "N/D" }} dias.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
