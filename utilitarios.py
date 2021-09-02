@@ -20,8 +20,9 @@ def referencias_vehiculo(cargas):
     prom_litros=(sum_litros_carga/len(cargas)) # dbmodel.session.query(func.avg(Cargas.monto_carga/Cargas.precio)).scalar()
     consumo=((sum_litros_carga*100)/recorrido)
     prom_recorrido=int(recorrido/len(cargas))
+    print(date.today(), max_fecha_carga, datetime.utcnow())
     dias_ultima_carga=date.today()-max_fecha_carga
-
+    
     datos_calculados={ 
         "suma_total_cargas": sum_monto_carga,
         "suma_total_litros": sum_litros_carga,

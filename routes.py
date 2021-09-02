@@ -1,5 +1,6 @@
 from main import app, db
 from flask import render_template, redirect, url_for, flash, get_flashed_messages, request
+from formularios import NuevaRecargaCombustible
 from models import Cargas
 from datetime import datetime
 from utilitarios import referencias_vehiculo
@@ -7,116 +8,74 @@ from utilitarios import referencias_vehiculo
 @app.route('/')
 @app.route('/index', methods=['GET', 'POST'])
 def index():
-    # jugadores = Jugador.query.all()
-    # form = forms.SortearForm()
+    form = NuevaRecargaCombustible()
     cargas = Cargas.query.all()
     referencias_principales=referencias_vehiculo(cargas)
-    return render_template('home.html', **referencias_principales)
+    return render_template('home.html', **referencias_principales, form=form)
 
 @app.route('/recargas', methods=['GET', 'POST'])
 def recargas():
+    #cargas = Cargas.query.order_by(Cargas.fecha_carga.desc()).all()
     cargas = Cargas.query.all()
     return render_template('combustible.html', cargas=cargas)
 
-# import forms
-# import random
-# import ast
-# import pytz
+@app.route('/nueva_recarga', methods=['GET', 'POST'])
+def nueva_recarga():
+    form = NuevaRecargaCombustible()
+    if form.validate_on_submit():
+        carga = Cargas(date=datetime.utcnow(), 
+                       fecha_carga=datetime.utcnow(),
+                       odometro=form.odometro.data, 
+                       emblema=form.emblema.data,
+                       precio=form.precio.data,
+                       monto_carga=form.monto.data
+                      )
+        db.session.add(carga)
+        db.session.commit()
+        flash('Nuevo recarga agregada con exito.') #esta bueno
+        return redirect(url_for('index'))
+    return render_template('recarga.html', form=form)
 
-# def recuperar_lista(equipos):
-#     distribuidos  = []
-#     for team in equipos:
-#         plantel = []
-#         for player in team:
-#             jugador = Jugador.query.get(player)
-#             plantel.append(jugador)
-#         distribuidos.append(plantel)
-#     return distribuidos
+@app.route('/modificar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+def modificar_recarga(recarga_id):
+    recarga = Cargas.query.get(recarga_id)
+    form = NuevaRecargaCombustible()
+    if recarga:
+        if form.validate_on_submit():
+            recarga.fecha_carga = datetime.utcnow() # hay que preparar un datepicker
+            recarga.odometro = form.odometro.data
+            recarga.emblema = form.emblema.data
+            recarga.precio = form.precio.data
+            recarga.monto_carga = form.monto.data
+            db.session.commit()
+            flash('Se modifico la recarga con exito.')
+            return  redirect(url_for('recargas'))
+        form.fecha_carga.data = recarga.fecha_carga
+        form.odometro.data = recarga.odometro
+        form.emblema.data = recarga.emblema
+        form.precio.data = recarga.precio 
+        form.monto.data = recarga.monto_carga
+        return render_template('modificar_recarga.html', form=form, recarga_id=recarga.id)
+    else:
+        flash('No se encontro la recarga a modificar.')
+    return redirect(url_for('index'))
 
-# @app.route('/add', methods=['GET', 'POST'])
-# def add():
-#     form = forms.AgregarJugadorForm()
-#     if form.validate_on_submit():
-#         j = Jugador(nombre=form.nombre.data, numero_camiseta=form.numero.data, date=datetime.utcnow())
-#         db.session.add(j)
-#         db.session.commit()
-#         flash('Nuevo miembro registrado exitosamente.') #esta bueno
-#         return redirect(url_for('index'))
-#     return render_template('add.html', form=form)
-
-# @app.route('/edit/<int:jugador_id>', methods=['GET', 'POST'])
-# def edit(jugador_id):
-#     jugador = Jugador.query.get(jugador_id)
-#     form = forms.AgregarJugadorForm()
-#     if jugador:
-#         if form.validate_on_submit():
-#             jugador.nombre = form.nombre.data
-#             jugador.numero_camiseta = form.numero.data
-#             jugador.date = datetime.utcnow()
-#             db.session.commit()
-#             flash('Se modifico la informacion del jugador.')
-#             return  redirect(url_for('index'))
-#         form.nombre.data = jugador.nombre
-#         form.numero.data = jugador.numero_camiseta
-#         return render_template('edit.html', form=form, jugador_id=jugador_id)
-#     else:
-#         flash('No se encontro el jugador a modificar.')
-#     return redirect(url_for('index'))
-
-# @app.route('/delete/<int:jugador_id>', methods=['GET', 'POST'])
-# def delete(jugador_id):
-#     jugador = Jugador.query.get(jugador_id)
-#     form = forms.BorrarJugadorForm()
-#     if jugador:
-#         if form.validate_on_submit():
-#             db.session.delete(jugador)
-#             db.session.commit()
-#             flash('Lista de miembros actualizada.')
-#             return  redirect(url_for('index'))
-#         return render_template('delete.html', form=form, jugador_id=jugador_id, nombre=jugador.nombre)
-#     else:
-#         flash('No se encontro el jugador a eliminar.')
-#     return redirect(url_for('index'))
-
-# @app.route('/sorteo', methods=['GET', 'POST'])
-# def sorteo():
-#     lista = []
-#     equipos = []
-#     lista = request.form.getlist('lista_presentes')
-#     cantidad = request.form.get('tipo_juego')
-#     if len(lista) > 0 and len(cantidad) > 0:
-#         cantidad = int(cantidad)
-#         while len(lista)>=cantidad:
-#             equipo = random.sample(lista, cantidad)
-#             for i in equipo:
-#                 lista.remove(i)
-#             equipos.append(equipo)
-#         if len(lista)>0:
-#             resto_del_mundo=lista
-#             equipos.append(resto_del_mundo)
-#             fecha = datetime.now(pytz.timezone('America/Asuncion'))
-#             p = Equipos(nombre=fecha.strftime('%Y-%b-%d-%A_%H%M'), listado=str(equipos), date=fecha)
-#             db.session.add(p)
-#             db.session.commit()
-#         presentes = recuperar_lista(equipos)
-#         return  render_template('sorteo.html', tipo=cantidad, equipos=presentes)
-#     else:
-#         flash('Seleccione al menos un par de jugadores.')
-#     return redirect(url_for('index'))
-
-# @app.route('/update', methods=['GET', 'POST'])
-# def update():
-#     jugadores = Jugador.query.all()
-#     return render_template('update.html', jugadores=jugadores)
-
-# @app.route('/historico', methods=['GET', 'POST'])
-# def historico():
-#     equipos = Equipos.query.all()
-#     return render_template('historico.html', equipos=equipos)
-
-# @app.route('/detalles/<int:equipos_id>', methods=['GET', 'POST'])
-# def detalles(equipos_id):
-#     equipos = Equipos.query.get(equipos_id)
-#     lista = equipos.listado  
-#     presentes = recuperar_lista(ast.literal_eval(lista))
-#     return render_template('detalle.html', equipos=presentes, nombre=equipos.nombre, equipos_id=equipos_id)
+@app.route('/borrar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+def borrar_recarga(recarga_id):
+    recarga = Cargas.query.get(recarga_id)
+    form = NuevaRecargaCombustible()
+    if recarga:
+        form.fecha_carga.data = recarga.fecha_carga
+        form.odometro.data = recarga.odometro
+        form.emblema.data = recarga.emblema
+        form.precio.data = recarga.precio 
+        form.monto.data = recarga.monto_carga
+        if form.validate_on_submit():
+            db.session.delete(recarga)
+            db.session.commit()
+            flash('Lista de recargas actualizada.')
+            return  redirect(url_for('recargas'))
+        return render_template('borrar_recarga.html', form=form, recarga_id=recarga_id)
+    else:
+        flash('No se encontro la recarga a eliminar.')
+    return redirect(url_for('index'))

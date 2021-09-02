@@ -1,51 +1,38 @@
 {% extends "base.html" %}
 {% block main %}
-<h1><strong>BITACORA Y FINANZAS</strong></h1>
-<span style="color: grey">Ver. 2.0</span>
-<div class="card-columns">
-    <!-- <div class="card">
-        <div class="card-header">
-            CABECERA
-        </div>
-        <div class="card-body">
-            <p class="card-title">Title</p>
-            <p class="card-subtitle text-muted">Card subtitle</p>
-            <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
-            <a href="#" class="card-link">Card link</a>
-            <a href="#" class="card-link">Another link</a>
-        </div>
-        <div class="card-footer text-muted">
-            FOOTER
-        </div>
-    </div> -->
+<form action="{{ url_for('nueva_recarga') }}" method="post">
+    {{ form.csrf_token }}
 
-    <div class="card">
-        <div class="card-header">
-            <h3><strong>CARGAS DE COMBUSTIBLE</strong></h3>
-        </div>
-        <div class="card-body">
-            <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
-            <div>
-                <table class="table table-sm">
-                    <tr><td>TOTAL DE RECARGAS Gs.:</td><td><strong>{{ "{:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
-                    <tr><td>PROMEDIO LITROS POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
-                    <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
-                    <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
-                    <tr><td>PROMEDIO DIAS PARA RECARGAS:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
-                </table>
+    <h1><strong>BITACORA Y FINANZAS</strong></h1>
+    <span style="color: grey">Ver. 2.0</span>
+    <div class="card-columns">
+        <div class="card">
+            <div class="card-header">
+                <h3><strong>CARGAS DE COMBUSTIBLE</strong></h3>
             </div>
-            <!-- <h4 class="card-title">Title</h4> -->
-            <!-- <p class="card-subtitle text-muted">Card subtitle</p>
-            <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p> -->
-            <table></table>
-            <div class="card-text text-right">
-                <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
+            <div class="card-body">
+                <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
+                <div>
+                    <table class="table table-sm">
+                        <tr><td>TOTAL DE RECARGAS:</td><td><strong>{{ "Gs. {:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
+                        <tr><td>PROM. LTS. POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
+                        <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
+                        <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
+                        <tr><td>PROM. DIAS POR TANQUE:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
+                    </table>
+                </div>
+                <!-- <h4 class="card-title">Title</h4> -->
+                <!-- <p class="card-subtitle text-muted">Card subtitle</p>
+                <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p> -->
+                <div class="card-text text-right">
+                    <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
+                </div>
             </div>
-        </div>
-        <div class="card-footer text-muted text-right">
-            <a href="#" class="btn btn-primary">NUEVA RECARGA</a>
+            <div class="card-footer text-muted text-right">
+                <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">NUEVA RECARGA</a>
+            </div>
         </div>
     </div>
-</div>
+
 {% endblock %}
 

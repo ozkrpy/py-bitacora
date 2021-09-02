@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('nueva_recarga') }}" method="post">
+    <div class="card-columns">
+        {{ form.csrf_token }}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-center"><strong>NUEVA CARGA DE COMBUSTIBLE</strong></h3>
+            </div>
+            <div class="card-body">
+                <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
+                <div class="d-flex flex-row d-flex align-items-center">
+                  <table class="table table-sm">
+                    <tr><td>Fecha de la carga:</td><td><strong>{{ form.fecha_carga(class="form-control") }}</strong></td></tr>
+                    <tr><td>Odometro:</td><td><strong>{{ form.odometro(class="form-control") }}</strong></td></tr>
+                    <tr><td>Estacion Servicio:</td><td><strong>{{ form.emblema(class="form-control") }}</strong></td></tr>
+                    <tr><td>Precio:</td><td><strong>{{ form.precio(class="form-control") }}</strong></td></tr>
+                    <tr><td>Monto de la carga:</td><td><strong>{{ form.monto(class="form-control") }}</strong></td></tr>
+                  </table>
+                </div>
+            </div>    
+            <div class="card-footer text-muted text-right">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('recargas') }}" class="btn btn-danger">Cancelar</a>
+            </div>      
+        </div>
+    </div>
+</form>
+{% endblock %}

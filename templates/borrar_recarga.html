@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('borrar_recarga', recarga_id=recarga_id) }}" method="post">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+      <div class="card-header">
+          <h3 class="card-title text-center"><strong>ELIMINAR CARGA DE COMBUSTIBLE</strong></h3>
+      </div>
+      <div class="card-body">
+          <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
+          <div class="d-flex flex-row d-flex align-items-center">
+            <table class="table table-sm">
+              <tr><td>Fecha de la carga:</td><td><strong>{{ form.fecha_carga.data }}</strong></td></tr>
+              <tr><td>Odometro:</td><td><strong>{{ form.odometro.data }}</strong></td></tr>
+              <tr><td>Estacion de Servicio:</td><td><strong>{{ form.emblema.data }}</strong></td></tr>
+              <tr><td>Precio:</td><td><strong>{{ form.precio.data }}</strong></td></tr>
+              <tr><td>Monto de la carga:</td><td><strong>{{ form.monto.data }}</strong></td></tr>
+            </table>
+          </div>
+      </div>    
+      <div class="card-footer text-muted text-right">
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('recargas') }}" class="btn btn-danger">Cancelar</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
