@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('borrar_operacion', operacion_id=operacion_id) }}" method="POST">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+      <div class="card-header">
+          <h3 class="card-title text-center"><strong>ELIMINAR MOVIMIENTO DE TARJETA</strong></h3>
+      </div>
+      <div class="card-body">
+          <h4 class="card-title text-center"><strong>VISA</strong></h4>
+          <div class="d-flex flex-row d-flex align-items-center">
+            <table class="table table-sm">
+              <tr><td>Fecha Operacion:</td><td><strong>{{ form.fecha_operacion.data }}</strong></td></tr>
+              <tr><td>Descripcion:</td><td><strong>{{ form.descripcion.data }}</strong></td></tr>
+              <tr><td>Monto:</td><td><strong>{{ form.monto_operacion.data }}</strong></td></tr>
+              <tr><td>Tipo Movimiento:</td><td><strong>{{ form.tipo_operacion_view.data }}</strong></td></tr>
+            </table>
+          </div>
+      </div>    
+      <div class="card-footer text-muted text-right">
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('index') }}" class="btn btn-danger">Cancelar</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

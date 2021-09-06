@@ -25,10 +25,10 @@
                 {% for carga in cargas %}
                 <tr>
                     <td>{{ carga.fecha_carga }}</td>
-                    <td>{{ carga.odometro }}</td>
+                    <td>{{ "{:,.0f}".format(carga.odometro).replace(",", ".") }}</td>
                     <td>{{ carga.emblema }}</td>
-                    <td>{{ carga.precio }}</td>
-                    <td>{{ carga.monto_carga }}</td>
+                    <td>{{ "{:,.0f}".format(carga.precio).replace(",", ".") }}</td>
+                    <td>{{ "Gs. {:,.0f}".format(carga.monto_carga).replace(",", ".") }}</td>
                     <td>{{ '%0.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
                     <td>{{ (loop.nextitem.odometro-carga.odometro) if not loop.last else "N/D" }}</td>
                     <td>{{ '%0.2f'|format(((carga.monto_carga/carga.precio)*100)/(loop.nextitem.odometro-carga.odometro)|float) if not loop.last else "N/D" }}</td>
