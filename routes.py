@@ -135,14 +135,12 @@ def borrar_operacion(operacion_id):
 @app.route('/nueva_operacion', methods=['GET', 'POST'])
 def nueva_operacion():
     form = FormularioMovimientos()
-    print(form.validate_on_submit())
     if form.validate_on_submit():
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
                         monto_operacion=form.monto_operacion.data,
                         id_tipo_movimiento=form.tipo_operacion.data)
-        print(carga)
         db.session.add(carga)
         db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno
