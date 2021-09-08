@@ -17,7 +17,7 @@
                         <tr><td>PROM. LTS. POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
                         <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
                         <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
-                        <tr><td>DURACION ACTUAL:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
+                        <tr><td>ULTIMA CARGA:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
                     </table>
                 </div>
                 <div class="card-text text-right">
@@ -34,7 +34,10 @@
                 <h3><strong>MOVIMIENTOS DE TARJETA</strong></h3>
             </div>
             <div class="card-body">
-                <h4 class="card-title text-center"><strong>2021</strong></h4>
+                <div class="card-title">
+                    <h4 class="card-text text-center"><strong>{{ anno }}</strong></h4>
+                    <a href="{{ url_for('historial_operacion', anno=anno, anno_mes='2021-01') }}" class="card-link">Ver todo el historial</a>
+                </div>
                 <div>
                     <table class="table table-sm">
                         {% for movimiento in movimientos %}

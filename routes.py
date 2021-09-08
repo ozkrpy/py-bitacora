@@ -11,9 +11,10 @@ from utilitarios import referencias_vehiculo, listar_tipos
 def index():
     form = FormularioCombustible()
     cargas = Cargas.query.all()
+    anno = datetime.now().strftime("%Y")
     referencias_principales = referencias_vehiculo(cargas)
-    movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==datetime.now().strftime("%Y")).all()
-    return render_template('home.html', **referencias_principales, form=form, movimientos=movimientos) #usar ** permite que se manipule la variable directamente en el DOM
+    movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all()
+    return render_template('home.html', **referencias_principales, form=form, movimientos=movimientos, anno=anno) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/recargas', methods=['GET', 'POST'])
 def recargas():
@@ -146,3 +147,13 @@ def nueva_operacion():
         flash('Nueva operacion agregada con exito.') #esta bueno
         return redirect(url_for('index'))
     return render_template('nueva_operacion.html', form=form)
+
+@app.route('/historial_operacion/<string:anno>/<string:anno_mes>', methods=['GET', 'POST'])
+def historial_operacion(anno, anno_mes):
+    movimientos_anno = dbmodel.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
+    movimientos_anno_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    movimientos_mes_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    movimientos_mes_detalle = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
+    
+    return render_template('historial_operaciones.html', anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
+
