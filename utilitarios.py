@@ -35,4 +35,5 @@ def referencias_vehiculo(cargas):
 
 def listar_tipos():
     tipos = TiposMovimiento.query.all()
-    return {(tipo.id, tipo.tipo) for tipo in tipos}
+    d = [(tipo.id, tipo.tipo) for tipo in tipos]
+    return d#{(tipo.id, tipo.tipo) for tipo in tipos}

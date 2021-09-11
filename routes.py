@@ -96,6 +96,7 @@ def modificar_operacion(operacion_id):
     if operacion:
         if form.validate_on_submit():
             mes = operacion.fecha_operacion.strftime('%Y-%m') 
+            if not mes: mes = datetime.now().strftime("%Y-%m")
             operacion.fecha_operacion = form.fecha_operacion.data # hay que preparar un datepicker
             operacion.descripcion = form.descripcion.data
             operacion.monto_operacion = form.monto_operacion.data
@@ -106,7 +107,7 @@ def modificar_operacion(operacion_id):
         form.fecha_operacion.data = operacion.fecha_operacion # hay que preparar un datepicker
         form.descripcion.data = operacion.descripcion
         form.monto_operacion.data = operacion.monto_operacion
-        form.tipo_operacion.data = operacion.tipo_movimiento.tipo
+        form.tipo_operacion.data = operacion.tipo_movimiento.id
         return render_template('modificar_operacion.html', form=form, operacion_id=operacion_id)
     else:
         flash('No se encontro la operacion a modificar.')

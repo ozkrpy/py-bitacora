@@ -2,12 +2,12 @@
 
 {% block main %}
     <!-- <div class="card-deck"> -->
-<div class="card">
+<!-- <div class="card">
     <div class="card-header">
         <h3 class="card-title text-center"><strong>HISTORIAL ANUAL</strong></h3>
     </div>
-    <div class="card-body">
-        <table class="table">
+    <div class="card-body"> -->
+        <table class="table table-sm text-center">
             {% for movimiento in movimientos_anno %}
             <!-- <tr> -->
                 <td>
@@ -17,11 +17,12 @@
             <!-- </tr> -->
             {% endfor %}
         </table>
-    </div>
+        
+    <!-- </div> -->
     <!-- <div class="card-footer text-muted text-center">
         <a href="#" onclick="goBack()" class="btn btn-primary">Volver</a>
     </div>       -->
-</div>
+<!-- </div>
 <br>
 <div class="card">
     <div class="card-header">
@@ -31,7 +32,7 @@
         <div class="card-title">
             <h4 class="card-text text-center"><strong>{{ anno }}</strong></h4>
         </div>
-        <div>
+        <div> -->
             <table class="table table-sm">
                 {% for movimiento in movimientos_anno_especifico %}
                 <td>
@@ -46,16 +47,16 @@
                 </tr> -->
                 {% endfor %}
             </table>
-        </div>
+        <!-- </div>
     </div>
-</div>
+</div> -->
     <!-- </div> -->
-<div class="card">
+<!-- <div class="card">
     <div class="card-header">
         <h3 class="card-title text-center"><strong>DETALLES</strong></h3>
     </div>
-    <div class="card-body">
-        <table class="table table-striped table-sm">
+    <div class="card-body"> -->
+        <table class="table table-striped  table-sm">
             <thead>
                 <tr>
                 <th>Fecha</th>
@@ -79,9 +80,9 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+    <!-- </div>
     <div class="card-footer text-muted text-center">
         <a href="#" onclick="goBack()" class="btn btn-primary">Volver</a>
     </div>      
-</div>
+</div> -->
 {% endblock %}

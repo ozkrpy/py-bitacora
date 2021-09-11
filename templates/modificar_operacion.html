@@ -6,7 +6,7 @@
   <div class="card-columns">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title text-center"><strong>MODIFICAR CARGA DE COMBUSTIBLE</strong></h3>
+            <h3 class="card-title text-center"><strong>MODIFICAR OPERACION</strong></h3>
         </div>
         <div class="card-body">
             <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
@@ -22,7 +22,9 @@
         <!-- {{ form.tipo_operacion(class="form-control") }} -->
         <div class="card-footer text-muted text-right">
             {{ form.submit(class="btn btn-primary") }}
-            <a href="{{ url_for('recargas') }}" class="btn btn-danger">Cancelar</a>
+            <!-- <a href="{{ url_for('index') }}" class="btn btn-danger">Cancelar</a> -->
+            <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+            
         </div>
     </div>
   </div>
