@@ -1,7 +1,8 @@
 # LIBRERIA PARA FUNCIONES
 from datetime import datetime, date
-from models import TiposMovimiento, db as dbmodel, Cargas
+from models import Movimientos, TiposMovimiento, db as dbmodel, Cargas
 from sqlalchemy import func
+from parametros import LIMITE_CREDITO_TJ
 
 def referencias_vehiculo(cargas):
     sum_monto_carga=0
@@ -37,3 +38,14 @@ def listar_tipos():
     tipos = TiposMovimiento.query.all()
     d = [(tipo.id, tipo.tipo) for tipo in tipos]
     return d#{(tipo.id, tipo.tipo) for tipo in tipos}
+
+def balance_cuenta():
+    sum_montos = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).scalar()
+    #balance = LIMITE_CREDITO_TJ - sum_montos
+    return sum_montos 
+
+def balance_cuenta_puntual(movimientos):
+    sum_montos = 0
+    for movimiento in movimientos:
+        sum_montos += movimiento.monto_operacion
+    return sum_montos

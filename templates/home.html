@@ -5,12 +5,18 @@
     <h1><strong>BITACORA Y FINANZAS</strong></h1>
     <span style="color: grey">Ver. 2.0</span>
     <div class="card-columns">
+        <!-- COMBUSTIBLE -->
         <div class="card">
             <div class="card-header">
                 <h3><strong>CARGAS DE COMBUSTIBLE</strong></h3>
             </div>
             <div class="card-body">
-                <h4 class="card-title text-center"><strong>GAC GS3</strong></h4>
+                <div class="card-title">
+                    <h4 class="card-text text-center"><strong>GAC GS3</strong></h4>
+                    <div class="card-text text-right">
+                        <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
+                    </div>
+                </div>
                 <div>
                     <table class="table table-sm">
                         <tr><td>TOTAL DE RECARGAS:</td><td><strong>{{ "Gs. {:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
@@ -20,15 +26,38 @@
                         <tr><td>ULTIMA CARGA:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
                     </table>
                 </div>
-                <div class="card-text text-right">
-                    <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
-                </div>
             </div>
             <div class="card-footer text-muted text-right">
                 <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">NUEVA RECARGA</a>
             </div>
         </div>
-
+        <!-- GASTOS FIJOS -->
+        <div class="card">
+            <div class="card-header">
+                <h3><strong>GASTOS FIJOS & VARIABLES</strong></h3>
+            </div>
+            <div class="card-body">
+                <div class="card-title">
+                    <!-- <h4 class="card-text text-center"><strong></strong></h4> -->
+                    <div class="card-text text-right">
+                        <a href="{{ url_for('index') }}" class="card-link">Ver historico de gastos</a>
+                    </div>
+                </div>
+                <!-- <div>
+                    <table class="table table-sm">
+                        <tr><td>TOTAL DE RECARGAS:</td><td><strong>{{ "Gs. {:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
+                        <tr><td>PROM. LTS. POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
+                        <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
+                        <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
+                        <tr><td>ULTIMA CARGA:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
+                    </table>
+                </div> -->
+            </div>
+            <div class="card-footer text-muted text-right">
+                <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">NUEVO GASTO</a>
+            </div>
+        </div>
+        <!-- TARJETA -->
         <div class="card">
             <div class="card-header">
                 <h3><strong>MOVIMIENTOS DE TARJETA</strong></h3>
@@ -36,17 +65,28 @@
             <div class="card-body">
                 <div class="card-title">
                     <h4 class="card-text text-center"><strong>{{ anno }}</strong></h4>
-                    <a href="{{ url_for('historial_operacion', anno=anno, anno_mes='2021-01') }}" class="card-link">Ver todo el historial</a>
+                    <div class="card-text text-right">
+                        <a href="{{ url_for('historial_operacion', anno=anno, anno_mes='2021-01') }}" class="card-link">Ver todo el historial</a>
+                    </div>
                 </div>
                 <div>
                     <table class="table table-sm">
                         {% for movimiento in movimientos %}
-                        <tr>
-                            <td>{{ movimiento.fecha }}</td>
-                            <td><strong>{{ "Gs. {:,.0f}".format(movimiento.total).replace(",", ".") }}</strong></td>
-                            <td class="align-self-end"><a href="{{ url_for('movimientos_mes', mes=movimiento.fecha) }}"><i class="fa fa-file-text-o"></i></a></td>
-                        </tr>
+                        <tbody>
+                            <tr>
+                                <td><a href="{{ url_for('movimientos_mes', mes=movimiento.fecha) }}">{{ movimiento.fecha }}</a></td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(movimiento.total).replace(",", ".") }}</strong></td>
+                                <!-- <td class="align-self-end"><a href="{{ url_for('movimientos_mes', mes=movimiento.fecha) }}"><i class="fa fa-file-text-o"></i></a></td> -->
+                            </tr>
+                        </tbody>
                         {% endfor %}
+                        <tfoot>
+                            <tr>
+                                <td><strong>Balance:</strong></td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

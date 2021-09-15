@@ -4,7 +4,7 @@ from sqlalchemy import func
 from formularios import FormularioMovimientos, FormularioCombustible
 from models import db as dbmodel, Cargas, Movimientos, TiposMovimiento
 from datetime import date, datetime
-from utilitarios import referencias_vehiculo, listar_tipos
+from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual
 
 @app.route('/')
 @app.route('/index', methods=['GET', 'POST'])
@@ -14,11 +14,11 @@ def index():
     anno = datetime.now().strftime("%Y")
     referencias_principales = referencias_vehiculo(cargas)
     movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all()
-    return render_template('home.html', **referencias_principales, form=form, movimientos=movimientos, anno=anno) #usar ** permite que se manipule la variable directamente en el DOM
+    balance_movimientos = balance_cuenta()
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=movimientos, anno=anno, balance_movimientos=balance_movimientos) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/recargas', methods=['GET', 'POST'])
 def recargas():
-    #cargas = Cargas.query.order_by(Cargas.fecha_carga.desc()).all()
     cargas = Cargas.query.all()
     return render_template('combustible.html', cargas=cargas)
 
@@ -87,7 +87,8 @@ def borrar_recarga(recarga_id):
 def movimientos_mes(mes):
     operaciones = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all()
     if operaciones:
-        return render_template('detalle_mes.html', operaciones=operaciones)
+        balance_mes = balance_cuenta_puntual(operaciones)
+        return render_template('detalle_mes.html', operaciones=operaciones, balance_mes=balance_mes)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 def modificar_operacion(operacion_id):
