@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="card-columns">
+    <div class="card">
+        <div class="card-header">
+            <h3><strong>TIPOS DE MOVIMIENTOS</strong></h3>
+        </div>
+        <div class="card-body">
+            <div>
+                <table class="table table-sm">
+                    {% for tipo in tipos_movimiento %}
+                    <tr>
+                        <td>{{ tipo.id }}</td>
+                        <td>{{ tipo.tipo }}</td>
+                        <td class="align-self-end">
+                            <a href="{{ url_for('modificar_parametrico', parametrico_id=tipo.id, origen='TIPOS') }}"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="{{ url_for('borrar_parametrico', parametrico_id=tipo.id, origen='TIPOS') }}" style="color:red"><i class="fa fa-trash-o"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">AGREGAR TIPO</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3><strong>AGRUPADOR DE GASTOS</strong></h3>
+        </div>
+        <div class="card-body">
+            <div>
+                <table class="table table-sm">
+                    {% for agrupador in agrupador_gastos %}
+                    <tr>
+                        <td>{{ agrupador.id }}</td>
+                        <td>{{ agrupador.agrupador }}</td>
+                        <td class="align-self-end">
+                            <a href="{{ url_for('modificar_parametrico', parametrico_id=agrupador.id, origen='AGRUPADORES') }}"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="{{ url_for('borrar_parametrico', parametrico_id=agrupador.id, origen='AGRUPADORES') }}" style="color:red"><i class="fa fa-trash-o"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="{{ url_for('nuevo_parametrico', origen='AGRUPADORES') }}" class="btn btn-primary">NUEVO AGRUPADOR</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

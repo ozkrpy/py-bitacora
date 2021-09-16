@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('nuevo_parametrico', origen=origen) }}" method="post">
+    <div class="card-columns">
+        {{ form.csrf_token }}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title text-center"><strong>AGREGAR NUEVO: {{ origen }}</strong></h3>
+            </div>
+            <div class="card-body">
+                <!-- <h4 class="card-title text-center"><strong>VISA</strong></h4> -->
+                <div class="card-columns card-text text-center">
+                    <div>Descripcion:</div>
+                    <div><strong>{{ form.descripcion(class="form-control") }}</strong></div>
+                </div>
+            </div>    
+            <div class="card-footer text-muted text-right">
+                {{ form.submit(class="btn btn-primary") }} <!---- deberia llevar al detalle del mes que fue cargado-->
+                <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+            </div>      
+        </div>
+    </div>
+</form>
+{% endblock %}

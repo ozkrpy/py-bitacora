@@ -24,3 +24,7 @@ class FormularioMovimientos(FlaskForm):
     tipo_operacion = SelectField('Tipo', choices=listar_tipos(), coerce=int)
     tipo_operacion_view = StringField()
     submit = SubmitField('Confirmar')
+
+class FormularioParametricos(FlaskForm):
+    descripcion = StringField('Descripcion', validators={DataRequired()})
+    submit = SubmitField('Confirmar')

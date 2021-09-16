@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('modificar_parametrico', parametrico_id=parametrico_id, origen=origen) }}" method="post">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>MODIFICAR {{ origen }}</strong></h3>
+        </div>
+        <div class="card-body">
+            <!-- <h4 class="card-title text-center"><strong>GAC GS3</strong></h4> -->
+            <div class="card-columns card-text text-center">
+                <div>Descripcion:</div>
+                <div><strong>{{ form.descripcion(class="form-control") }}</strong></div>
+            </div>
+        </div>    
+        <div class="card-footer text-muted text-right">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+        </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

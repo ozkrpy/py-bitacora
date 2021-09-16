@@ -1,8 +1,8 @@
 from main import app, db
 from flask import render_template, redirect, url_for, flash, get_flashed_messages, request
 from sqlalchemy import func
-from formularios import FormularioMovimientos, FormularioCombustible
-from models import db as dbmodel, Cargas, Movimientos, TiposMovimiento
+from formularios import FormularioMovimientos, FormularioCombustible, FormularioParametricos
+from models import AgrupadorGastos, db as dbmodel, Cargas, Movimientos, TiposMovimiento
 from datetime import date, datetime
 from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual
 
@@ -159,3 +159,75 @@ def historial_operacion(anno, anno_mes):
     
     return render_template('historial_operaciones.html', anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
 
+@app.route('/parametrico', methods=['GET', 'POST'])
+def parametrico():
+    tipos_movimiento = TiposMovimiento.query.all()
+    agrupador_gastos = AgrupadorGastos.query.all()
+    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos)
+
+
+@app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+def modificar_parametrico(parametrico_id, origen):
+    form = FormularioParametricos()
+    if origen == 'TIPOS':
+        parametro = TiposMovimiento.query.get(parametrico_id)
+    elif origen == 'AGRUPADORES':
+        parametro = AgrupadorGastos.query.get(parametrico_id)
+    if parametro:
+        if form.validate_on_submit():
+            if origen == 'TIPOS':
+                parametro.tipo = form.descripcion.data
+                # db.session.commit()
+            elif origen == 'AGRUPADORES':
+                print(form.descripcion.data)
+                parametro.agrupador = form.descripcion.data
+            db.session.commit()
+            flash('Lista de '+ origen +' actualizada.')
+            return redirect(url_for('parametrico'))
+        if origen == 'TIPOS':
+            form.descripcion.data = parametro.tipo
+        elif origen == 'AGRUPADORES':
+            form.descripcion.data = parametro.agrupador
+        return render_template('modificar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('parametrico'))
+
+@app.route('/borrar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+def borrar_parametrico(parametrico_id, origen):
+    form = FormularioParametricos()
+    if origen == 'TIPOS':
+        parametro = TiposMovimiento.query.get(parametrico_id)
+    elif origen == 'AGRUPADORES':
+        parametro = AgrupadorGastos.query.get(parametrico_id)
+    if parametro:
+        if origen == 'TIPOS':
+            # parametro = TiposMovimiento(tipo=form.descripcion.data)
+            form.descripcion.data = parametro.tipo
+        elif origen == 'AGRUPADORES':
+            # parametro = AgrupadorGastos(agrupador=form.descripcion.data)
+            form.descripcion.data = parametro.agrupador
+        if form.validate_on_submit():
+            db.session.delete(parametro)
+            db.session.commit()
+            flash('Lista de '+ origen +' actualizada.')
+            return redirect(url_for('parametrico'))
+        return render_template('borrar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('parametrico'))
+
+@app.route('/nuevo_parametrico/<string:origen>', methods=['GET', 'POST'])
+def nuevo_parametrico(origen):
+    print(origen)
+    form = FormularioParametricos()
+    if form.validate_on_submit():
+        if origen == 'TIPOS':
+            parametro = TiposMovimiento(tipo=form.descripcion.data)
+        elif origen == 'AGRUPADORES':
+            parametro = AgrupadorGastos(agrupador=form.descripcion.data)
+        db.session.add(parametro)
+        db.session.commit()
+        flash('Nuevo parametro: ' + origen + ' agregado con exito.')
+        return redirect(url_for('parametrico'))
+    return render_template('nuevo_parametrico.html', form=form, origen=origen)    
