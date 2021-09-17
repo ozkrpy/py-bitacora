@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField
-from wtforms.fields.core import IntegerField
+from wtforms.fields.core import BooleanField, IntegerField
 from wtforms.validators import DataRequired
 from wtforms.fields.html5 import DateField
-from utilitarios import listar_tipos
+from utilitarios import listar_agrupador, listar_tipos
 #from models import TiposMovimiento
 
 
@@ -27,4 +27,14 @@ class FormularioMovimientos(FlaskForm):
 
 class FormularioParametricos(FlaskForm):
     descripcion = StringField('Descripcion', validators={DataRequired()})
+    submit = SubmitField('Confirmar')
+
+class FormularioGastos(FlaskForm):
+    fecha_pagar = DateField('DatePicker', format='%Y-%m-%d')
+    descripcion = StringField('Descripcion', validators={DataRequired()})
+    monto = IntegerField('Monto', validators={DataRequired()})
+    agrupador = SelectField('Tipo', choices=listar_agrupador(), coerce=int)
+    operacion = BooleanField('Pagado')
+    pagado = BooleanField('Pagado')
+    agrupador_view = StringField()
     submit = SubmitField('Confirmar')

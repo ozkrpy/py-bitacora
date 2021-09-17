@@ -1,6 +1,6 @@
 # LIBRERIA PARA FUNCIONES
 from datetime import datetime, date
-from models import Movimientos, TiposMovimiento, db as dbmodel, Cargas
+from models import AgrupadorGastos, Movimientos, TiposMovimiento, db as dbmodel, Cargas
 from sqlalchemy import func
 from parametros import LIMITE_CREDITO_TJ
 
@@ -49,3 +49,8 @@ def balance_cuenta_puntual(movimientos):
     for movimiento in movimientos:
         sum_montos += movimiento.monto_operacion
     return sum_montos
+
+def listar_agrupador():
+    grupos = AgrupadorGastos.query.all()
+    d = [(grupo.id, grupo.agrupador) for grupo in grupos]
+    return d

@@ -39,6 +39,7 @@ class GastosFijos(db.Model):
     fecha_pagar = db.Column(db.Date, nullable=False)
     descripcion = db.Column(db.String(100), nullable=False)
     monto = db.Column(db.Integer)
+    operacion = db.Column(db.Boolean, server_default=u'False')
     pagado = db.Column(db.Boolean, server_default=u'False')
     id_agrupador_gastos = db.Column(db.Integer, db.ForeignKey('agrupador_gastos.id'), nullable=True)
     agrupador_gastos = db.relationship('AgrupadorGastos',backref='agrupador_gastos', foreign_keys=[id_agrupador_gastos])

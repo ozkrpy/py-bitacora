@@ -1,8 +1,8 @@
 from main import app, db
 from flask import render_template, redirect, url_for, flash, get_flashed_messages, request
 from sqlalchemy import func
-from formularios import FormularioMovimientos, FormularioCombustible, FormularioParametricos
-from models import AgrupadorGastos, db as dbmodel, Cargas, Movimientos, TiposMovimiento
+from formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos
+from models import AgrupadorGastos, GastosFijos, db as dbmodel, Cargas, Movimientos, TiposMovimiento
 from datetime import date, datetime
 from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual
 
@@ -231,3 +231,20 @@ def nuevo_parametrico(origen):
         flash('Nuevo parametro: ' + origen + ' agregado con exito.')
         return redirect(url_for('parametrico'))
     return render_template('nuevo_parametrico.html', form=form, origen=origen)    
+
+@app.route('/nuevo_gasto', methods=['GET', 'POST'])
+def nuevo_gasto():
+    form = FormularioGastos()
+    if form.validate_on_submit():
+        carga = GastosFijos(date=datetime.utcnow(),
+                        fecha_pagar=form.fecha_pagar.data,
+                        descripcion=form.descripcion.data, 
+                        monto=form.monto.data,
+                        operacion=form.operacion.data,
+                        pagado=form.pagado.data,
+                        id_agrupador_gastos=form.agrupador.data)
+        db.session.add(carga)
+        db.session.commit()
+        flash('Nueva operacion agregada con exito.') #esta bueno
+        return redirect(url_for('index'))
+    return render_template('nuevo_gasto.html', form=form)
