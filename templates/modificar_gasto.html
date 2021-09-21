@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('modificar_gasto', gasto_id=gasto_id) }}" method="post">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>MODIFICAR {{ origen }}</strong></h3>
+        </div>
+        <div class="card-body">
+            <!-- <h4 class="card-title text-center"><strong>GAC GS3</strong></h4> -->
+            <table class="table table-sm">
+                <tr><td>Fecha a pagar:</td><td><strong>{{ form.fecha_pagar(class="form-control") }}</strong></td></tr>
+                <tr><td>Descripcion:</td><td><strong>{{ form.descripcion(class="form-control") }}</strong></td></tr>
+                <tr><td>Monto:</td><td><strong>{{ form.monto(class="form-control") }}</strong></td></tr>
+                <tr><td>CREDITO?:</td><td><strong>{{ form.operacion(class="form-control") }}</strong></td></tr>
+                <tr><td>PAGADO?:</td><td><strong>{{ form.pagado(class="form-control") }}</strong></td></tr>
+                <tr><td>ACREEDOR</td><td><strong>{{ form.agrupador(class="form-control") }}</strong></td></tr>
+            </table>
+        </div>    
+        <div class="card-footer text-muted text-right">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+        </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

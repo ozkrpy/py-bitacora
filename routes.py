@@ -3,8 +3,8 @@ from flask import render_template, redirect, url_for, flash, get_flashed_message
 from sqlalchemy import func
 from formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos
 from models import AgrupadorGastos, GastosFijos, db as dbmodel, Cargas, Movimientos, TiposMovimiento
-from datetime import date, datetime
-from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual
+from datetime import date, datetime, timedelta
+from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas
 
 @app.route('/')
 @app.route('/index', methods=['GET', 'POST'])
@@ -12,10 +12,12 @@ def index():
     form = FormularioCombustible()
     cargas = Cargas.query.all()
     anno = datetime.now().strftime("%Y")
+    fechas_referencia = {'mes_anterior':datetime.now() - timedelta(days=29), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now() + timedelta(days=29)}
     referencias_principales = referencias_vehiculo(cargas)
     movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all()
     balance_movimientos = balance_cuenta()
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=movimientos, anno=anno, balance_movimientos=balance_movimientos) #usar ** permite que se manipule la variable directamente en el DOM
+    gastos = dbmodel.session.query(GastosFijos).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=movimientos, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/recargas', methods=['GET', 'POST'])
 def recargas():
@@ -179,7 +181,6 @@ def modificar_parametrico(parametrico_id, origen):
                 parametro.tipo = form.descripcion.data
                 # db.session.commit()
             elif origen == 'AGRUPADORES':
-                print(form.descripcion.data)
                 parametro.agrupador = form.descripcion.data
             db.session.commit()
             flash('Lista de '+ origen +' actualizada.')
@@ -219,7 +220,6 @@ def borrar_parametrico(parametrico_id, origen):
 
 @app.route('/nuevo_parametrico/<string:origen>', methods=['GET', 'POST'])
 def nuevo_parametrico(origen):
-    print(origen)
     form = FormularioParametricos()
     if form.validate_on_submit():
         if origen == 'TIPOS':
@@ -248,3 +248,61 @@ def nuevo_gasto():
         flash('Nueva operacion agregada con exito.') #esta bueno
         return redirect(url_for('index'))
     return render_template('nuevo_gasto.html', form=form)
+
+
+@app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
+def historico_gastos_detalle(periodo):
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
+    if not gastos:
+        precarga_deudas(periodo)
+        gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
+    return render_template('historico_gastos_detalle.html', gastos=gastos)
+
+@app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+def modificar_gasto(gasto_id):
+    gasto = GastosFijos.query.get(gasto_id)
+    form = FormularioGastos()
+    if gasto:
+        if form.validate_on_submit():
+            gasto.fecha_pagar = form.fecha_pagar.data # hay que preparar un datepicker
+            gasto.descripcion = form.descripcion.data
+            gasto.monto = form.monto.data
+            gasto.id_agrupador_gastos = form.agrupador.data
+            gasto.operacion = form.operacion.data
+            gasto.pagado = form.pagado.data
+            db.session.commit()
+            flash('Se modifico el gasto con exito.')
+            return  redirect(url_for('index'))
+        form.fecha_pagar.data = gasto.fecha_pagar
+        form.descripcion.data = gasto.descripcion
+        form.monto.data = gasto.monto
+        form.operacion.data = gasto.operacion 
+        form.pagado.data = gasto.pagado
+        form.agrupador.data = gasto.agrupador_gastos
+        return render_template('modificar_gasto.html', form=form, gasto_id=gasto.id)
+    else:
+        flash('No se encontro el gasto a modificar.')
+    return redirect(url_for('index'))
+
+@app.route('/borrar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+def borrar_gasto(gasto_id):
+    gasto = GastosFijos.query.get(gasto_id)
+    form = FormularioGastos()
+    if gasto:
+        form.fecha_pagar.data = gasto.fecha_pagar
+        form.descripcion.data = gasto.descripcion
+        form.monto.data = gasto.monto
+        form.operacion.data = gasto.operacion 
+        form.pagado.data = gasto.pagado
+        form.agrupador.data = gasto.agrupador_gastos.id
+        form.agrupador_view.data = gasto.agrupador_gastos.agrupador
+        if form.validate_on_submit():
+            mes = gasto.fecha_pagar.strftime('%Y-%m') 
+            db.session.delete(gasto)
+            db.session.commit()
+            flash('Lista de gastos actualizada.')
+            return redirect(url_for('historico_gastos_detalle', periodo=mes))
+        return render_template('borrar_gasto.html', form=form, gasto_id=gasto_id)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('index'))

@@ -1,23 +1,5 @@
-# from sqlalchemy.engine.url import URL
-# from sqlalchemy import create_engine
-
-# sqlite_db = {'drivername': 'sqlite', 'database': 'db.sqlite'}
-# print(URL(**sqlite_db))
-# db_uri = 'sqlite:///db.sqlite'
-# engine = create_engine(db_uri)
-
-# # Create connection
-# conn = engine.connect()
-# # Begin transaction
-# trans = conn.begin()
-# conn.execute('DROP TABLE gastos_fijos'
-#              )
-# trans.commit()
-# # Close connection
-# conn.close()
-
 from main import db
-from models import GastosFijos, db as dbmodel, Cargas, TiposMovimiento, Movimientos
+from models import GastosFijos, db as dbmodel, Cargas, TiposMovimiento, Movimientos, AgrupadorGastos
 from sqlalchemy import func
 
 from datetime import datetime, date
@@ -4778,4 +4760,4 @@ dbmodel.create_all()
 # dbmodel.session.add(m)
 # dbmodel.session.commit()
 
-#for j in Movimientos.query.all():print(j)
+# for j in Movimientos.query.all():print(j)

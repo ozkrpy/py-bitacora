@@ -12,7 +12,7 @@
             </div>
             <div class="card-body">
                 <div class="card-title">
-                    <h4 class="card-text text-center"><strong>GAC GS3</strong></h4>
+                    <h4 class="card-text text-center"><strong>{{ vehiculo }}</strong></h4>
                     <div class="card-text text-right">
                         <a href="{{ url_for('recargas') }}" class="card-link">Ver todas las cargas</a>
                     </div>
@@ -37,21 +37,40 @@
                 <h3><strong>GASTOS FIJOS & VARIABLES</strong></h3>
             </div>
             <div class="card-body">
-                <div class="card-title">
-                    <!-- <h4 class="card-text text-center"><strong></strong></h4> -->
+                <div class="card-title text-center">
+                    <table class="table table-sm">
+                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong><-{{ fechas_referencia.mes_anterior.strftime('%B') }}</strong></a></td>
+                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.fecha_actual.strftime('%Y-%m')) }}" class="card-link"><h4><strong>{{ fechas_referencia.fecha_actual.strftime('%B') }}</strong></h4></a></td>
+                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_siguiente.strftime('%B') }}-></strong></a></td>
+                    </table>
                     <div class="card-text text-right">
                         <a href="{{ url_for('index') }}" class="card-link">Ver historico de gastos</a>
                     </div>
                 </div>
-                <!-- <div>
+                <div>
                     <table class="table table-sm">
-                        <tr><td>TOTAL DE RECARGAS:</td><td><strong>{{ "Gs. {:,.0f}".format(suma_total_cargas).replace(",", ".") }}</strong></td></tr>
-                        <tr><td>PROM. LTS. POR RECARGA:</td><td><strong>{{ '%0.2f'|format(promedio_litros_por_recarga|float) }} lts.</strong></td></tr>
-                        <tr><td>DISTANCIA POR TANQUE:</td><td><strong>{{ promedio_recorrido_por_tanque }} kms.</strong></td></tr>
-                        <tr><td>CONSUMO POR CADA 100Km.:</td><td><strong>{{ '%0.2f'|format(consumo_por_100km|float) }} lts.</strong></td></tr>
-                        <tr><td>ULTIMA CARGA:</td><td><strong>{{ promedio_dias_carga }} dias.</strong></td></tr>
+                        <thead>
+                            <th>Descripcion</th>
+                            <th>Pagar en</th>
+                            <th>Monto</th>
+                            <!-- <th>Operacion</th>
+                            <th>Pagado</th> -->
+                            <th>Grupo</th>
+                        </thead>
+                        <tbody>
+                        {% for gasto in gastos %}
+                            <tr>
+                                <td>{{ gasto.descripcion }}</td>
+                                <td>{{ gasto.fecha_pagar.strftime('%d-%b') }}</td>
+                                <td><strong>Gs. {{ "+" if gasto.operacion else "-" }}{{ "{:,.0f}".format(gasto.monto).replace(",", ".") }}</strong></td>
+                                <!-- <td>{{ gasto.operacion }}</td>
+                                <td>{{ gasto.pagado }}</td> -->
+                                <td>{{ gasto.agrupador_gastos.agrupador }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
                     </table>
-                </div> -->
+                </div>
             </div>
             <div class="card-footer text-muted text-right">
                 <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary">NUEVO GASTO</a>
@@ -64,7 +83,7 @@
             </div>
             <div class="card-body">
                 <div class="card-title">
-                    <h4 class="card-text text-center"><strong>{{ anno }}</strong></h4>
+                    <h4 class="card-text text-center"><strong>{{ fechas_referencia.fecha_actual.strftime('%Y') }}</strong></h4>
                     <div class="card-text text-right">
                         <a href="{{ url_for('historial_operacion', anno=anno, anno_mes='2021-01') }}" class="card-link">Ver todo el historial</a>
                     </div>
