@@ -83,8 +83,24 @@ def precarga_deudas(mes: str):
     dbmodel.session.commit()
     return 'ok'
 
-# DEUDA_BASICA = {
-#     'CASA':CASA, 'CHECHY':CHECHY, 'PAGO_TARJETA': PAGO_TARJETA, 'COMBUSTIBLE': COMBUSTIBLE,
-#     'SEGURO_AUTO': SEGURO_AUTO, 'SUPERMERCADO': SUPERMERCADO, 'CONTADORA': CONTADORA,
-#     'BRUTO': SALARIO_BRUTO
-# }
+def deuda_total(deudas):
+    saldo = 0
+    for deuda in deudas:
+        if not deuda.operacion:
+            saldo += deuda.monto
+        else:
+            saldo -= deuda.monto
+    return saldo
+
+def saldos_grupo(result):
+    list_dict = []
+    saldo = 0
+    for i in result:
+        i_dict = i._asdict()  # sqlalchemy.util._collections.result , has a method called _asdict()
+        list_dict.append(i_dict)
+    for item in list_dict:
+        if item['acreedor']=='CREDITO':
+            saldo -= item['total']
+        else:
+            saldo += item['total']
+    return saldo

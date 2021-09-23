@@ -39,9 +39,9 @@
             <div class="card-body">
                 <div class="card-title text-center">
                     <table class="table table-sm">
-                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong><-{{ fechas_referencia.mes_anterior.strftime('%B') }}</strong></a></td>
+                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_anterior.strftime('%B') }}</strong></a></td>
                         <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.fecha_actual.strftime('%Y-%m')) }}" class="card-link"><h4><strong>{{ fechas_referencia.fecha_actual.strftime('%B') }}</strong></h4></a></td>
-                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_siguiente.strftime('%B') }}-></strong></a></td>
+                        <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_siguiente.strftime('%B') }}</strong></a></td>
                     </table>
                     <div class="card-text text-right">
                         <a href="{{ url_for('index') }}" class="card-link">Ver historico de gastos</a>
@@ -50,25 +50,27 @@
                 <div>
                     <table class="table table-sm">
                         <thead>
-                            <th>Descripcion</th>
+                            <!-- <th>Descripcion</th> -->
                             <th>Pagar en</th>
                             <th>Monto</th>
                             <!-- <th>Operacion</th>
                             <th>Pagado</th> -->
-                            <th>Grupo</th>
+                            <!-- <th>Grupo</th> -->
                         </thead>
                         <tbody>
                         {% for gasto in gastos %}
                             <tr>
-                                <td>{{ gasto.descripcion }}</td>
-                                <td>{{ gasto.fecha_pagar.strftime('%d-%b') }}</td>
-                                <td><strong>Gs. {{ "+" if gasto.operacion else "-" }}{{ "{:,.0f}".format(gasto.monto).replace(",", ".") }}</strong></td>
-                                <!-- <td>{{ gasto.operacion }}</td>
-                                <td>{{ gasto.pagado }}</td> -->
-                                <td>{{ gasto.agrupador_gastos.agrupador }}</td>
+                                <td>{{ gasto.acreedor }}</td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(gasto.total).replace(",", ".") }}</strong></td>
                             </tr>
                         {% endfor %}
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="card-text text-right"><strong>Total deudas:</strong></td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(total_gasto).replace(",", ".") }}</strong></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
