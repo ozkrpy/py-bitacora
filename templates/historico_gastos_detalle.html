@@ -12,18 +12,18 @@
                     <th class="card-text text-center">A Pagar</th>
                     <th class="card-text text-right">Descripcion</th>
                     <th class="card-text text-right">Monto</th>
-                    <th class="card-text text-center">Pagado</th>
+                    <!-- <th class="card-text text-center">Pagado</th> -->
                     <th class="card-text text-left">Acreedor</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for gasto in gastos %}
-                <tr>
+                <tr class="{{ 'text-success' if gasto.pagado else 'text-danger' }}">
                     <td class="card-text text-center">{{ gasto.fecha_pagar }}</td>
                     <td class="card-text text-right">{{ gasto.descripcion }}</td>
                     <td class="card-text text-right"><strong>Gs. {{ "+" if gasto.operacion else "-" }}{{ "{:,.0f}".format(gasto.monto).replace(",", ".") }}</strong></td>
-                    <td class="card-text text-center">{{ gasto.pagado }}</td>
+                    <!-- <td class="card-text text-center">{{ gasto.pagado }}</td> -->
                     <td class="card-text text-left">{{ gasto.agrupador_gastos.agrupador }}</td>
                     <td class="align-self-end">
                         <a href="{{ url_for('modificar_gasto', gasto_id=gasto.id) }}"><i class="fa fa-pencil-square-o"></i></a>
@@ -38,7 +38,7 @@
                     <td class="card-text text-right"><strong>Total:</strong></td>
                     <td class="card-text text-right"><strong>Gs. {{ "{:,.0f}".format(deuda).replace(",", ".") }}</strong></td>
                     <td></td>
-                    <td></td>
+                    <!-- <td></td> -->
                     <td></td>
                 </tr>
                 <tr>
@@ -46,7 +46,7 @@
                     <td class="card-text text-right"><strong>Disponibilidad:</strong></td>
                     <td class="card-text text-right"><strong>Gs. {{ "{:,.0f}".format(disponibilidad).replace(",", ".") }}</strong></td>
                     <td></td>
-                    <td></td>
+                    <!-- <td></td> -->
                     <td></td>
                 </tr>
             </tfoot>

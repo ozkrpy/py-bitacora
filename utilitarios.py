@@ -59,7 +59,6 @@ def listar_agrupador():
 
 def precarga_deudas(mes: str):
     fecha_generacion = datetime.strptime(mes, '%Y-%m')
-    print(DEUDA_BASICA)
     g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CASA', monto=DEUDA_BASICA['CASA'], operacion=False, pagado=False, id_agrupador_gastos=2)
     dbmodel.session.add(g)
     dbmodel.session.commit()

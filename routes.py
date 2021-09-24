@@ -258,7 +258,6 @@ def historico_gastos_detalle(periodo):
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
     deuda = deuda_total(gastos)
     disponibilidad = SALARIO_NETO - deuda
-    print(SALARIO_NETO)
     return render_template('historico_gastos_detalle.html', gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
