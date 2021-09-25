@@ -310,3 +310,8 @@ def borrar_gasto(gasto_id):
     else:
         flash('No se encontro la operacion a eliminar.')
     return redirect(url_for('index'))   
+
+@app.route('/historico_gastos', methods=['GET', 'POST'])
+def historico_gastos():
+    gastos = dbmodel.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
+    return render_template('historico_gastos.html', gastos=gastos)

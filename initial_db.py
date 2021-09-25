@@ -5,6 +5,15 @@ from sqlalchemy import func
 from datetime import datetime, date
 
 dbmodel.create_all()
+#update = dbmodel.session.query(Movimientos).filter(Movimientos.monto_operacion < 0, Movimientos.id_tipo_movimiento != 10).update({'id_tipo_movimiento': 10})
+update = dbmodel.session.query(Movimientos).filter(Movimientos.monto_operacion < 0).update({'monto_operacion': Movimientos.monto_operacion * -1})
+dbmodel.session.commit()
+
+rows = dbmodel.session.query(Movimientos).join(TiposMovimiento).filter(Movimientos.monto_operacion < 0).all()
+for row in rows:
+    print(row)
+
+#[1, INDEFINIDO, 10, Pago, 2, Automovil, 16, USA]
 
 # j = Cargas(date=datetime.utcnow(), fecha_carga=datetime(2019, 12, 25), odometro=10917,emblema='Petropar Aeropuerto', precio=6390, monto_carga=201215)
 # dbmodel.session.add(j)

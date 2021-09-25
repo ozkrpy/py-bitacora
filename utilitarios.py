@@ -49,7 +49,10 @@ def balance_cuenta():
 def balance_cuenta_puntual(movimientos):
     sum_montos = 0
     for movimiento in movimientos:
-        sum_montos += movimiento.monto_operacion
+        if movimiento.id_tipo_movimiento == 10:
+            sum_montos -= movimiento.monto_operacion
+        else:
+            sum_montos += movimiento.monto_operacion
     return sum_montos
 
 def listar_agrupador():
