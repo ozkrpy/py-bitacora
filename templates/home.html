@@ -95,9 +95,8 @@
                         {% for movimiento in movimientos %}
                         <tbody>
                             <tr>
-                                <td><a href="{{ url_for('movimientos_mes', mes=movimiento.fecha) }}">{{ movimiento.fecha }}</a></td>
-                                <td><strong>{{ "Gs. {:,.0f}".format(movimiento.total).replace(",", ".") }}</strong></td>
-                                <!-- <td class="align-self-end"><a href="{{ url_for('movimientos_mes', mes=movimiento.fecha) }}"><i class="fa fa-file-text-o"></i></a></td> -->
+                                <td><a href="{{ url_for('movimientos_mes', mes=movimiento[0]) }}">{{ movimiento[0] }}</a></td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(movimiento[1]).replace(",", ".") }}</strong></td>
                             </tr>
                         </tbody>
                         {% endfor %}

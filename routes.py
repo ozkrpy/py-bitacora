@@ -15,11 +15,10 @@ def index():
     anno = datetime.now().strftime("%Y")
     fechas_referencia = {'mes_anterior':datetime.now() - timedelta(days=29), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now() + timedelta(days=29)}
     referencias_principales = referencias_vehiculo(cargas)
-    movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all()
-    balance_movimientos = balance_cuenta()
+    balance_movimientos, balance_mensual = balance_cuenta()
     gastos = dbmodel.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
     total_gasto = saldos_grupo(gastos)
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=movimientos, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto) #usar ** permite que se manipule la variable directamente en el DOM
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/recargas', methods=['GET', 'POST'])
 def recargas():

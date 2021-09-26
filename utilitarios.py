@@ -4,6 +4,8 @@ from models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, d
 from sqlalchemy import func
 from parametros import DEUDA_BASICA
 
+from itertools import groupby
+from operator import itemgetter
 
 def referencias_vehiculo(cargas):
     sum_monto_carga=0
@@ -42,9 +44,22 @@ def listar_tipos():
     return d#{(tipo.id, tipo.tipo) for tipo in tipos}
 
 def balance_cuenta():
-    sum_montos = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).scalar()
-    #balance = LIMITE_CREDITO_TJ - sum_montos
-    return sum_montos 
+    balance_mes = []
+    anno = datetime.now().strftime("%Y")
+    movimientos = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), Movimientos.id_tipo_movimiento.label('tipo'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all()
+    for key,keydata in groupby(movimientos, key=itemgetter(0)):
+        sumatoria_mes = 0
+        for data in keydata:
+            if data.tipo == 10:
+                sumatoria_mes -= data.total
+            else:
+                sumatoria_mes += data.total
+        item = (key, sumatoria_mes)
+        balance_mes.append(item)
+    sum_deudas = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter(Movimientos.id_tipo_movimiento!=10).scalar()
+    sum_pagos = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter(Movimientos.id_tipo_movimiento==10).scalar()
+    sum_montos = sum_deudas - sum_pagos
+    return sum_montos, balance_mes
 
 def balance_cuenta_puntual(movimientos):
     sum_montos = 0
