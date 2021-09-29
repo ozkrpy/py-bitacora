@@ -5,7 +5,7 @@
     <h1><strong>BITACORA Y FINANZAS</strong></h1>
     <span style="color: grey">Ver. 2.0</span>
     <div class="card-columns">
-        <!-- COMBUSTIBLE -->
+        <!-- CARGAS DE COMBUSTIBLE -->
         <div class="card">
             <div class="card-header">
                 <h3><strong>CARGAS DE COMBUSTIBLE</strong></h3>
@@ -31,7 +31,7 @@
                 <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">NUEVA RECARGA</a>
             </div>
         </div>
-        <!-- GASTOS FIJOS -->
+        <!-- GASTOS FIJOS SALARIO -->
         <div class="card">
             <div class="card-header">
                 <h3><strong>GASTOS FIJOS & VARIABLES</strong></h3>
@@ -49,14 +49,7 @@
                 </div>
                 <div>
                     <table class="table table-sm">
-                        <!-- <thead> -->
-                            <!-- <th>Descripcion</th> -->
-                            <!-- <th>Pagar en</th> -->
-                            <!-- <th>Monto</th> -->
-                            <!-- <th>Operacion</th>
-                            <th>Pagado</th> -->
-                            <!-- <th>Grupo</th> -->
-                        <!-- </thead> -->
+                        
                         <tbody>
                         {% for gasto in gastos %}
                             <tr>
@@ -78,7 +71,7 @@
                 <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary">NUEVO GASTO</a>
             </div>
         </div>
-        <!-- TARJETA -->
+        <!-- TARJETA DE CREDITO -->
         <div class="card">
             <div class="card-header">
                 <h3><strong>MOVIMIENTOS DE TARJETA</strong></h3>
