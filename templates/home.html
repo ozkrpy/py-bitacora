@@ -38,7 +38,7 @@
             </div>
             <div class="card-body">
                 <div class="card-title text-center">
-                    <table class="table table-sm">
+                    <table class="table table-sm table-borderless">
                         <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_anterior.strftime('%B') }}</strong></a></td>
                         <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.fecha_actual.strftime('%Y-%m')) }}" class="card-link"><h4><strong>{{ fechas_referencia.fecha_actual.strftime('%B') }}</strong></h4></a></td>
                         <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas_referencia.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas_referencia.mes_siguiente.strftime('%B') }}</strong></a></td>
@@ -49,14 +49,14 @@
                 </div>
                 <div>
                     <table class="table table-sm">
-                        <thead>
+                        <!-- <thead> -->
                             <!-- <th>Descripcion</th> -->
-                            <th>Pagar en</th>
-                            <th>Monto</th>
+                            <!-- <th>Pagar en</th> -->
+                            <!-- <th>Monto</th> -->
                             <!-- <th>Operacion</th>
                             <th>Pagado</th> -->
                             <!-- <th>Grupo</th> -->
-                        </thead>
+                        <!-- </thead> -->
                         <tbody>
                         {% for gasto in gastos %}
                             <tr>
@@ -102,7 +102,7 @@
                         {% endfor %}
                         <tfoot>
                             <tr>
-                                <td><strong>Balance:</strong></td>
+                                <td class="card-text text-right"><strong>Balance:</strong></td>
                                 <td><strong>{{ "Gs. {:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></td>
                                 <td></td>
                             </tr>

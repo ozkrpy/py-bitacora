@@ -91,7 +91,7 @@ def movimientos_mes(mes):
     operaciones = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all()
     if operaciones:
         balance_mes = balance_cuenta_puntual(operaciones)
-        return render_template('detalle_mes.html', operaciones=operaciones, balance_mes=balance_mes)
+        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 def modificar_operacion(operacion_id):
@@ -257,7 +257,7 @@ def historico_gastos_detalle(periodo):
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
     deuda = deuda_total(gastos)
     disponibilidad = SALARIO_NETO - deuda
-    return render_template('historico_gastos_detalle.html', gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
+    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
 def modificar_gasto(gasto_id):
