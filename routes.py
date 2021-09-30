@@ -281,7 +281,7 @@ def modificar_gasto(gasto_id):
         form.monto.data = gasto.monto
         form.operacion.data = gasto.operacion 
         form.pagado.data = gasto.pagado
-        form.agrupador.data = gasto.agrupador_gastos
+        form.agrupador.data = gasto.agrupador_gastos.id
         return render_template('modificar_gasto.html', form=form, gasto_id=gasto.id)
     else:
         flash('No se encontro el gasto a modificar.')
