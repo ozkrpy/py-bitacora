@@ -83,22 +83,22 @@ def precarga_deudas(mes: str):
     g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CHECHY', monto=DEUDA_BASICA['CHECHY'], operacion=False, pagado=False, id_agrupador_gastos=2)
     dbmodel.session.add(g)
     dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='PAGO_TARJETA', monto=DEUDA_BASICA['PAGO_TARJETA'], operacion=False, pagado=False, id_agrupador_gastos=3)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='COMBUSTIBLE', monto=DEUDA_BASICA['COMBUSTIBLE'], operacion=False, pagado=False, id_agrupador_gastos=3)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
     g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SEGURO_AUTO', monto=DEUDA_BASICA['SEGURO_AUTO'], operacion=False, pagado=False, id_agrupador_gastos=3)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SUPERMERCADO', monto=DEUDA_BASICA['SUPERMERCADO'], operacion=False, pagado=False, id_agrupador_gastos=3)
     dbmodel.session.add(g)
     dbmodel.session.commit()
     g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CONTADORA', monto=DEUDA_BASICA['CONTADORA'], operacion=False, pagado=False, id_agrupador_gastos=1)
     dbmodel.session.add(g)
     dbmodel.session.commit()
-    return 'ok'
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='PAGO_TARJETA', monto=DEUDA_BASICA['PAGO_TARJETA'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # dbmodel.session.add(g)
+    # dbmodel.session.commit()
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='COMBUSTIBLE', monto=DEUDA_BASICA['COMBUSTIBLE'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # dbmodel.session.add(g)
+    # dbmodel.session.commit()
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SUPERMERCADO', monto=DEUDA_BASICA['SUPERMERCADO'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # dbmodel.session.add(g)
+    # dbmodel.session.commit()
+    return True
 
 def deuda_total(deudas):
     saldo = 0
@@ -109,7 +109,7 @@ def deuda_total(deudas):
             saldo -= deuda.monto
     return saldo
 
-def saldos_grupo(result):
+def saldo_grupo(result):
     list_dict = []
     saldo = 0
     for i in result:
@@ -121,3 +121,4 @@ def saldos_grupo(result):
         else:
             saldo += item['total']
     return saldo
+

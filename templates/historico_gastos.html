@@ -5,7 +5,7 @@
 
 <div class="card-deck">
     {% for fecha, detalle_gasto in gastos | groupby('fecha') %}
-    <div class="card">
+    <div class="card card-responsive">
         <div class="card-header">
             <h3 class="card-title text-center"><strong>{{ fecha }}</strong></h3>
         </div>
@@ -14,7 +14,7 @@
                 <thead class="thead-light">
                     <th></th>
                     <th>Acreedor</th>
-                    <th>Monto</th>
+                    <th class="card-text text-right">Monto</th>
                     <th></th>
                 </thead>
                 <tbody>
@@ -28,12 +28,12 @@
                     {% endfor %}                            
                 </tbody>
                 <tfoot>
-                    <tr>
+                    <!-- <tr>
                         <td></td>
                         <td class="card-text text-right"><strong>Total</strong></td>
-                        <td class="card-text text-right"><strong>{{ "Gs. {:,.0f}".format(detalle_gasto | sum(attribute='total')).replace(",", ".") }}</strong></td>
+                        <td class="card-text text-right"><strong>{{ "Gs. {:,.0f}".format(0).replace(",", ".") }}</strong></td>
                         <td></td>
-                    </tr>
+                    </tr> -->
                 </tfoot>
             </table>
         </div>
