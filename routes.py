@@ -142,6 +142,9 @@ def borrar_operacion(operacion_id):
 def nueva_operacion():
     form = FormularioMovimientos()
     if form.validate_on_submit():
+        mes = form.fecha_operacion.data.strftime('%Y-%m') 
+        if not mes: mes = datetime.now().strftime("%Y-%m")
+        print(mes)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
@@ -150,20 +153,17 @@ def nueva_operacion():
         db.session.add(carga)
         db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno
-        return redirect(url_for('index'))
+        return redirect(url_for('movimientos_mes', mes=mes))
     return render_template('nueva_operacion.html', form=form)
 
 @app.route('/historial_operacion/<string:anno>/<string:anno_mes>', methods=['GET', 'POST'])
 def historial_operacion(anno, anno_mes):
-    movimientos_anno = dbmodel.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
-    movimientos_anno_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    movimientos_mes_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    movimientos_mes_detalle = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
-
+    # movimientos_anno = dbmodel.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
+    # movimientos_anno_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    # movimientos_mes_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    # movimientos_mes_detalle = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
     operaciones = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
-    print(operaciones)
-    
-    return render_template('historial_operaciones.html', gastos=operaciones, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
+    return render_template('historial_operaciones.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
 
 @app.route('/parametrico', methods=['GET', 'POST'])
 def parametrico():
@@ -240,7 +240,7 @@ def nuevo_gasto():
     form = FormularioGastos()
     if form.validate_on_submit():
         mes = form.fecha_pagar.data.strftime('%Y-%m') 
-        # if not mes: mes = datetime.now().strftime("%Y-%m")
+        if not mes: mes = datetime.now().strftime("%Y-%m")
         carga = GastosFijos(date=datetime.utcnow(),
                         fecha_pagar=form.fecha_pagar.data,
                         descripcion=form.descripcion.data, 

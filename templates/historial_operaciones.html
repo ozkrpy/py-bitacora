@@ -24,19 +24,11 @@
                         <td></td>
                     </tr>
                     {% endfor %}                            
-                </tbody>
-                <tfoot>
-                    <!-- <tr>
-                        <td></td>
-                        <td class="card-text text-right"><strong>Total</strong></td>
-                        <td class="card-text text-right"><strong>{{ "Gs. {:,.0f}".format(0).replace(",", ".") }}</strong></td>
-                        <td></td>
-                    </tr> -->
-                </tfoot>
+                </tbody>°
             </table>
         </div>
         <div class="card-footer text-muted text-right">
-            <a href="{{ url_for('historico_gastos_detalle', periodo=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
+            <a href="{{ url_for('movimientos_mes', mes=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
         </div>
     </div>
     {% endfor %}
