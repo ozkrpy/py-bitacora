@@ -144,7 +144,6 @@ def nueva_operacion():
     if form.validate_on_submit():
         mes = form.fecha_operacion.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
-        print(mes)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
