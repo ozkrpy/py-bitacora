@@ -1,11 +1,16 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField
-from wtforms.fields.core import BooleanField, IntegerField
+from wtforms import StringField, SubmitField, SelectField, PasswordField, BooleanField, IntegerField
+#from wtforms.fields.core import BooleanField, IntegerField
 from wtforms.validators import DataRequired
 from wtforms.fields.html5 import DateField
-from utilitarios import listar_agrupador, listar_tipos
+from app.utilitarios import listar_agrupador, listar_tipos
 #from models import TiposMovimiento
 
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember_me = BooleanField('Remember Me')
+    submit = SubmitField('Sign In')
 
 class FormularioCombustible(FlaskForm):
     fecha_registro = StringField()

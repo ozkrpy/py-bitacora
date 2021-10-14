@@ -1,8 +1,9 @@
 # LIBRERIA PARA FUNCIONES
 from datetime import datetime, date
-from models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, db as dbmodel, Cargas
+from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, Cargas
+from app.parametros import DEUDA_BASICA
+from app import db as dbmodel
 from sqlalchemy import func
-from parametros import DEUDA_BASICA
 
 from itertools import groupby
 from operator import itemgetter

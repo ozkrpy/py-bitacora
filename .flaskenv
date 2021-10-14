@@ -1,0 +1,2 @@
+FLASK_APP=bitacora.py
+FLASK_ENV=development

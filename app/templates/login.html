@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="card-columns">
+    <form action="" method="post" novalidate>
+        <div class="card">
+            <div class="card-header">
+                <h3>INICIAR SESION</h3>
+            </div>
+            <div class="card-body">
+                {{ form.hidden_tag() }}
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td>{{ form.username.label }}</td>
+                        <td><strong>{{ form.username(class="form-control", size=32) }}</strong></td>
+                        <td>
+                            {% for error in form.username.errors %}
+                            <span style="color: red;">[{{ error }}]</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-middle">{{ form.password.label }}</td>
+                        <td class="align-middle"><strong>{{ form.password(class="form-control size=32" ) }}</strong></td>
+                        <td>
+                            {% for error in form.password.errors %}
+                            <span style="color: red;">[{{ error }}]</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><p class="align-right">{{ form.remember_me.label }}</p></td>
+                        <td><div>{{ form.remember_me(class="form-control col-sm-1") }}</div></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="card-footer text-muted text-right">
+                {{ form.submit(class="btn btn-primary") }} 
+            </div>  
+        </div>   
+    </form>
+</div>
+{% endblock main %}

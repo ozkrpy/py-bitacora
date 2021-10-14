@@ -1,14 +1,18 @@
-from main import app, db
-from flask import render_template, redirect, url_for, flash, get_flashed_messages, request
-from sqlalchemy import func
-from formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos
-from models import AgrupadorGastos, GastosFijos, db as dbmodel, Cargas, Movimientos, TiposMovimiento
 from datetime import date, datetime, timedelta
-from utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, saldo_grupo
-from parametros import SALARIO_NETO
+from flask import render_template, flash, redirect, url_for, request
+from app import app, db
+from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, LoginForm
+from app.models import User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
+from app.utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, saldo_grupo
+from app.parametros import SALARIO_NETO
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.urls import url_parse
+from sqlalchemy import func
+from werkzeug.urls import url_parse
 
 @app.route('/')
 @app.route('/index', methods=['GET', 'POST'])
+@login_required
 def index():
     form = FormularioCombustible()
     cargas = Cargas.query.all()
@@ -16,16 +20,40 @@ def index():
     fechas_referencia = {'mes_anterior':datetime.now() - timedelta(days=30), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now() + timedelta(days=31)}
     referencias_principales = referencias_vehiculo(cargas)
     balance_movimientos, balance_mensual = balance_cuenta()
-    gastos = dbmodel.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
+    gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
     total_gasto = saldo_grupo(gastos)
     return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto) #usar ** permite que se manipule la variable directamente en el DOM
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
+    return render_template('login.html', title='Sign In', form=form)
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
 @app.route('/recargas', methods=['GET', 'POST'])
+@login_required
 def recargas():
     cargas = Cargas.query.all()
     return render_template('combustible.html', cargas=cargas)
 
 @app.route('/nueva_recarga', methods=['GET', 'POST'])
+@login_required
 def nueva_recarga():
     form = FormularioCombustible()
     if form.validate_on_submit():
@@ -43,6 +71,7 @@ def nueva_recarga():
     return render_template('recarga.html', form=form)
 
 @app.route('/modificar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+@login_required
 def modificar_recarga(recarga_id):
     recarga = Cargas.query.get(recarga_id)
     form = FormularioCombustible()
@@ -67,6 +96,7 @@ def modificar_recarga(recarga_id):
     return redirect(url_for('index'))
 
 @app.route('/borrar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+@login_required
 def borrar_recarga(recarga_id):
     recarga = Cargas.query.get(recarga_id)
     form = FormularioCombustible()
@@ -87,13 +117,15 @@ def borrar_recarga(recarga_id):
     return redirect(url_for('index'))
 
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
+@login_required
 def movimientos_mes(mes):
-    operaciones = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all()
+    operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all()
     if operaciones:
         balance_mes = balance_cuenta_puntual(operaciones)
         return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+@login_required
 def modificar_operacion(operacion_id):
     operacion = Movimientos.query.get(operacion_id)
     form = FormularioMovimientos()
@@ -118,6 +150,7 @@ def modificar_operacion(operacion_id):
     return redirect(url_for('index'))
 
 @app.route('/borrar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+@login_required
 def borrar_operacion(operacion_id):
     operacion = Movimientos.query.get(operacion_id)
     form = FormularioMovimientos()
@@ -139,6 +172,7 @@ def borrar_operacion(operacion_id):
     return redirect(url_for('index'))
 
 @app.route('/nueva_operacion', methods=['GET', 'POST'])
+@login_required
 def nueva_operacion():
     form = FormularioMovimientos()
     if form.validate_on_submit():
@@ -156,21 +190,24 @@ def nueva_operacion():
     return render_template('nueva_operacion.html', form=form)
 
 @app.route('/historial_operacion/<string:anno>/<string:anno_mes>', methods=['GET', 'POST'])
+@login_required
 def historial_operacion(anno, anno_mes):
-    # movimientos_anno = dbmodel.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
-    # movimientos_anno_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    # movimientos_mes_especifico = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    # movimientos_mes_detalle = dbmodel.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
-    operaciones = dbmodel.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
+    # movimientos_anno = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
+    # movimientos_anno_especifico = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    # movimientos_mes_especifico = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
+    # movimientos_mes_detalle = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
+    operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
     return render_template('historial_operaciones.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
 
 @app.route('/parametrico', methods=['GET', 'POST'])
+@login_required
 def parametrico():
     tipos_movimiento = TiposMovimiento.query.all()
     agrupador_gastos = AgrupadorGastos.query.all()
     return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos)
 
 @app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+@login_required
 def modificar_parametrico(parametrico_id, origen):
     form = FormularioParametricos()
     if origen == 'TIPOS':
@@ -197,6 +234,7 @@ def modificar_parametrico(parametrico_id, origen):
     return redirect(url_for('parametrico'))
 
 @app.route('/borrar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+@login_required
 def borrar_parametrico(parametrico_id, origen):
     form = FormularioParametricos()
     if origen == 'TIPOS':
@@ -221,6 +259,7 @@ def borrar_parametrico(parametrico_id, origen):
     return redirect(url_for('parametrico'))
 
 @app.route('/nuevo_parametrico/<string:origen>', methods=['GET', 'POST'])
+@login_required
 def nuevo_parametrico(origen):
     form = FormularioParametricos()
     if form.validate_on_submit():
@@ -235,6 +274,7 @@ def nuevo_parametrico(origen):
     return render_template('nuevo_parametrico.html', form=form, origen=origen)    
 
 @app.route('/nuevo_gasto', methods=['GET', 'POST'])
+@login_required
 def nuevo_gasto():
     form = FormularioGastos()
     if form.validate_on_submit():
@@ -251,9 +291,13 @@ def nuevo_gasto():
         db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno
         return redirect(url_for('historico_gastos_detalle', periodo=mes))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
     return render_template('nuevo_gasto.html', form=form)
 
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
+@login_required
 def historico_gastos_detalle(periodo):
     gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
     if not gastos:
@@ -264,6 +308,7 @@ def historico_gastos_detalle(periodo):
     return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+@login_required
 def modificar_gasto(gasto_id):
     gasto = GastosFijos.query.get(gasto_id)
     form = FormularioGastos()
@@ -291,6 +336,7 @@ def modificar_gasto(gasto_id):
     return redirect(url_for('index'))
 
 @app.route('/borrar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+@login_required
 def borrar_gasto(gasto_id):
     gasto = GastosFijos.query.get(gasto_id)
     form = FormularioGastos()
@@ -314,6 +360,7 @@ def borrar_gasto(gasto_id):
     return redirect(url_for('index'))   
 
 @app.route('/historico_gastos', methods=['GET', 'POST'])
+@login_required
 def historico_gastos():
-    gastos = dbmodel.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
+    gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
     return render_template('historico_gastos.html', gastos=gastos)
