@@ -138,10 +138,11 @@ def precarga_deudas(mes: str):
 def deuda_total(deudas):
     saldo = 0
     for deuda in deudas:
-        if not deuda.operacion:
-            saldo += deuda.monto
-        else:
-            saldo -= deuda.monto
+        if deuda.pagado:
+            if not deuda.operacion:
+                saldo += deuda.monto
+            else:
+                saldo -= deuda.monto
     return saldo
 
 def saldo_grupo(result):
