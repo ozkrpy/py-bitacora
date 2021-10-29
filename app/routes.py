@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, LoginForm, RegistrationForm
 from app.models import User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, saldo_grupo
+from app.utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -49,8 +49,18 @@ def logout():
 @app.route('/recargas', methods=['GET', 'POST'])
 @login_required
 def recargas():
-    cargas = Cargas.query.all()
-    return render_template('combustible.html', cargas=cargas)
+    cargas_anuales = []
+    annos = db.session.query(func.strftime("%Y", Cargas.fecha_carga).label('anno')).distinct().all()
+    for anno in annos:
+        referencias = referencias_vehiculo_puntual(anno[0])
+        cargas_anuales.append(referencias)
+    return render_template('combustible.html', cargas_anuales=cargas_anuales)
+
+@app.route('/recargas_detalle/<anno>', methods=['GET', 'POST'])
+@login_required
+def recargas_detalle(anno):
+    cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).all()
+    return render_template('detalles_anno_combus.html', cargas=cargas, anno=anno)
 
 @app.route('/nueva_recarga', methods=['GET', 'POST'])
 @login_required
