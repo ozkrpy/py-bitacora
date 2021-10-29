@@ -59,7 +59,7 @@ def recargas():
 @app.route('/recargas_detalle/<anno>', methods=['GET', 'POST'])
 @login_required
 def recargas_detalle(anno):
-    cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).all()
+    cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).order_by(Cargas.fecha_carga).all()
     return render_template('detalles_anno_combus.html', cargas=cargas, anno=anno)
 
 @app.route('/nueva_recarga', methods=['GET', 'POST'])
@@ -129,7 +129,7 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
-    operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all()
+    operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
     if operaciones:
         balance_mes = balance_cuenta_puntual(operaciones)
         return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes)
@@ -309,7 +309,7 @@ def nuevo_gasto():
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
