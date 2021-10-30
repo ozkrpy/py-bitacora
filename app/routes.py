@@ -309,7 +309,7 @@ def nuevo_gasto():
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.id_agrupador_gastos).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
