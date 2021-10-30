@@ -78,6 +78,9 @@ def nueva_recarga():
         db.session.commit()
         flash('Nueva recarga agregada con exito.') #esta bueno
         return redirect(url_for('index'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
     return render_template('recarga.html', form=form)
 
 @app.route('/modificar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
@@ -95,6 +98,9 @@ def modificar_recarga(recarga_id):
             db.session.commit()
             flash('Se modifico la recarga con exito.')
             return  redirect(url_for('recargas'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         form.fecha_carga.data = recarga.fecha_carga
         form.odometro.data = recarga.odometro
         form.emblema.data = recarga.emblema
@@ -121,6 +127,9 @@ def borrar_recarga(recarga_id):
             db.session.commit()
             flash('Lista de recargas actualizada.')
             return  redirect(url_for('recargas'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         return render_template('borrar_recarga.html', form=form, recarga_id=recarga_id)
     else:
         flash('No se encontro la recarga a eliminar.')
@@ -150,6 +159,9 @@ def modificar_operacion(operacion_id):
             db.session.commit()
             flash('Se modifico la operacion con exito.')
             return redirect(url_for('movimientos_mes', mes=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         form.fecha_operacion.data = operacion.fecha_operacion # hay que preparar un datepicker
         form.descripcion.data = operacion.descripcion
         form.monto_operacion.data = operacion.monto_operacion
@@ -176,6 +188,9 @@ def borrar_operacion(operacion_id):
             db.session.commit()
             flash('Lista de movimientos actualizada.')
             return redirect(url_for('movimientos_mes', mes=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         return render_template('borrar_operacion.html', form=form, operacion_id=operacion_id)
     else:
         flash('No se encontro la operacion a eliminar.')
@@ -197,15 +212,14 @@ def nueva_operacion():
         db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno
         return redirect(url_for('movimientos_mes', mes=mes))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
     return render_template('nueva_operacion.html', form=form)
 
-@app.route('/historial_operacion/<string:anno>/<string:anno_mes>', methods=['GET', 'POST'])
+@app.route('/historial_operacion', methods=['GET', 'POST'])
 @login_required
-def historial_operacion(anno, anno_mes):
-    # movimientos_anno = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('anno'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y", Movimientos.fecha_operacion)).all()
-    # movimientos_anno_especifico = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    # movimientos_mes_especifico = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), func.sum(Movimientos.monto_operacion).label('total')).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion)).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).all() #datetime.now().strftime("%Y")
-    # movimientos_mes_detalle = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==anno_mes).all()
+def historial_operacion():
     operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
     return render_template('historial_operaciones.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
 
@@ -234,6 +248,9 @@ def modificar_parametrico(parametrico_id, origen):
             db.session.commit()
             flash('Lista de '+ origen +' actualizada.')
             return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         if origen == 'TIPOS':
             form.descripcion.data = parametro.tipo
         elif origen == 'AGRUPADORES':
@@ -263,6 +280,9 @@ def borrar_parametrico(parametrico_id, origen):
             db.session.commit()
             flash('Lista de '+ origen +' actualizada.')
             return redirect(url_for('parametrico'))
+        # else:
+        #     for k, v in form.errors.items():
+        #         flash('Error en: '+k)
         return render_template('borrar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
     else:
         flash('No se encontro la operacion a eliminar.')
@@ -281,6 +301,9 @@ def nuevo_parametrico(origen):
         db.session.commit()
         flash('Nuevo parametro: ' + origen + ' agregado con exito.')
         return redirect(url_for('parametrico'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
     return render_template('nuevo_parametrico.html', form=form, origen=origen)    
 
 @app.route('/nuevo_gasto', methods=['GET', 'POST'])
@@ -334,6 +357,9 @@ def modificar_gasto(gasto_id):
             db.session.commit()
             flash('Se modifico el gasto con exito.')
             return redirect(url_for('historico_gastos_detalle', periodo=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         form.fecha_pagar.data = gasto.fecha_pagar
         form.descripcion.data = gasto.descripcion
         form.monto.data = gasto.monto
@@ -364,6 +390,9 @@ def borrar_gasto(gasto_id):
             db.session.commit()
             flash('Lista de gastos actualizada.')
             return redirect(url_for('historico_gastos_detalle', periodo=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
         return render_template('borrar_gasto.html', form=form, gasto_id=gasto_id)
     else:
         flash('No se encontro la operacion a eliminar.')
@@ -387,4 +416,7 @@ def register():
         db.session.commit()
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
     return render_template('register.html', title='Register', form=form)
