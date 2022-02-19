@@ -5,3 +5,5 @@ parametros.py
 bitacora.log
 data_20210924.db
 data.db.bkp
+migrations/
+migrations/*

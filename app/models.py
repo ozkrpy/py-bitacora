@@ -43,6 +43,8 @@ class Movimientos(db.Model):
     monto_operacion = db.Column(db.Integer)
     id_tipo_movimiento = db.Column(db.Integer, db.ForeignKey('tipos_movimiento.id'), nullable=True)
     tipo_movimiento = db.relationship('TiposMovimiento',backref='tipo_movimiento', foreign_keys=[id_tipo_movimiento])
+    id_tarjeta = db.Column(db.Integer, db.ForeignKey('tarjetas.id'), nullable=True)
+    tipo_movimiento = db.relationship('Tarjetas',backref='tarjetas', foreign_keys=[id_tarjeta])
     def __repr__(self):
         return f'{self.id}, {self.date}, {self.fecha_operacion}, {self.descripcion}, {self.monto_operacion}, {self.id_tipo_movimiento}, {self.tipo_movimiento}'
 
@@ -73,3 +75,11 @@ class AgrupadorGastos(db.Model):
     agrupador = db.Column(db.String(100), nullable=False)
     def __repr__(self):
         return f'{self.id}, {self.agrupador}'
+
+class Tarjetas(db.Model):
+    __tablename__='tarjetas'
+    id = db.Column(db.Integer, primary_key=True)
+    banco = db.Column(db.String(100), nullable=False)
+    vencimiento = db.Column(db.String(10), nullable=False)
+    def __repr__(self):
+        return f'{self.id}, {self.banco}'
