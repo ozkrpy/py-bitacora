@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, LoginForm, RegistrationForm
-from app.models import User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
+from app.models import Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
 from app.utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
@@ -139,10 +139,14 @@ def borrar_recarga(recarga_id):
 @login_required
 def movimientos_mes(mes):
     operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
+    operaciones_atlas = db.session.query(Movimientos).filter(Movimientos.id_tarjeta==1).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
+    operaciones_basa =  db.session.query(Movimientos).filter(Movimientos.id_tarjeta==2).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
     if operaciones:
         balance_mes = balance_cuenta_puntual(operaciones)
+        balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
+        balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
         balance_movimientos, balance_mensual = balance_cuenta()
-        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes, balance_movimientos=balance_movimientos)
+        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required
@@ -427,3 +431,4 @@ def register():
         for k, v in form.errors.items():
             flash('Error en: '+k)
     return render_template('register.html', title='Register', form=form)
+
