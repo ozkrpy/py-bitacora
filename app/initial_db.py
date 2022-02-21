@@ -58,10 +58,10 @@ r=db.session.execute("SELECT * FROM alembic_version;")
 for d in r:
     print(d)
     -> ('d3a7069e0409',)
->>> r=db.session.execute("DROP TABLE alembic_version;")
+r=db.session.execute("DROP TABLE alembic_version;")
 
 flask db init
-flask db migrate
+flask db migrate -m "correccion modelo"
 flask db upgrade
 '''
 
