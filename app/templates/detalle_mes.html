@@ -36,8 +36,15 @@
                     <tfoot>
                         <tr>
                             <td></td>
-                            <td><strong>TOTAL:</strong></td>
+                            <td><strong>TOTAL MES {{ mes }}:</strong></td>
                             <td><strong>{{ "Gs. {:,.0f}".format(balance_mes).replace(",", ".") }}</strong></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><strong>BALANCE:</strong></td>
+                            <td><strong>{{ "Gs. {:,.0f}".format(balance_movimientos).replace(",", ".") }}</strong></td>
                             <td></td>
                             <td></td>
                         </tr>

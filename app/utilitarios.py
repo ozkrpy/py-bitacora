@@ -1,6 +1,6 @@
 # LIBRERIA PARA FUNCIONES
 from datetime import datetime, date
-from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, Cargas
+from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, Cargas, Tarjetas
 from app.parametros import DEUDA_BASICA
 from app import db as dbmodel
 from sqlalchemy import func
@@ -76,6 +76,11 @@ def referencias_vehiculo_puntual(anno):
 def listar_tipos():
     tipos = TiposMovimiento.query.all()
     d = [(tipo.id, tipo.tipo) for tipo in tipos]
+    return d#{(tipo.id, tipo.tipo) for tipo in tipos}
+
+def listar_tarjetas():
+    tipos = Tarjetas.query.all()
+    d = [(tipo.id, tipo.banco) for tipo in tipos]
     return d#{(tipo.id, tipo.tipo) for tipo in tipos}
 
 def balance_cuenta():

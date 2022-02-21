@@ -1,5 +1,4 @@
 ##EXECUTE IN TERMINAL
-from cv2 import batchDistance
 import app             
 from app import db
 from app import models
@@ -49,6 +48,32 @@ def downgrade():
     with op.batch_alter_table('movimientos', schema=None) as batch_op:
         batch_op.drop_constraint('fk_movimientos_tarjetas_id', type_='foreignkey')
 
+'''
+
+''' 
+## BORRAR VERSION DEL ALAEMBIC POR ERROR AL MIGRATE
+import app
+from app import db
+r=db.session.execute("SELECT * FROM alembic_version;") 
+for d in r:
+    print(d)
+    -> ('d3a7069e0409',)
+>>> r=db.session.execute("DROP TABLE alembic_version;")
+
+flask db init
+flask db migrate
+flask db upgrade
+'''
+
+'''
+## UPDATE MASIVO
+import app
+from app import db, models
+mov = models.Movimientos.query.all()
+for i in mov:
+    i.id_tarjeta=1
+    db.session.commit()
+    
 '''
 
 

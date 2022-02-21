@@ -141,7 +141,8 @@ def movimientos_mes(mes):
     operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
     if operaciones:
         balance_mes = balance_cuenta_puntual(operaciones)
-        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes)
+        balance_movimientos, balance_mensual = balance_cuenta()
+        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes, balance_movimientos=balance_movimientos)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required
@@ -156,6 +157,7 @@ def modificar_operacion(operacion_id):
             operacion.descripcion = form.descripcion.data
             operacion.monto_operacion = form.monto_operacion.data
             operacion.id_tipo_movimiento = form.tipo_operacion.data
+            operacion.id_tarjeta = form.tarjeta.data
             db.session.commit()
             flash('Se modifico la operacion con exito.')
             return redirect(url_for('movimientos_mes', mes=mes))
@@ -166,6 +168,7 @@ def modificar_operacion(operacion_id):
         form.descripcion.data = operacion.descripcion
         form.monto_operacion.data = operacion.monto_operacion
         form.tipo_operacion.data = operacion.tipo_movimiento.id
+        form.tarjeta.data = operacion.tarjeta.id
         return render_template('modificar_operacion.html', form=form, operacion_id=operacion_id)
     else:
         flash('No se encontro la operacion a modificar.')
@@ -182,6 +185,8 @@ def borrar_operacion(operacion_id):
         form.monto_operacion.data = operacion.monto_operacion
         form.tipo_operacion.data = operacion.tipo_movimiento.id
         form.tipo_operacion_view.data = operacion.tipo_movimiento.tipo
+        form.tarjeta.data = operacion.tarjeta.id
+        form.tarjeta_view.data = operacion.tarjeta.banco
         if form.validate_on_submit():
             mes = operacion.fecha_operacion.strftime('%Y-%m') 
             db.session.delete(operacion)
@@ -207,7 +212,8 @@ def nueva_operacion():
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
                         monto_operacion=form.monto_operacion.data,
-                        id_tipo_movimiento=form.tipo_operacion.data)
+                        id_tipo_movimiento=form.tipo_operacion.data,
+                        id_tarjeta=form.tarjeta.data)
         db.session.add(carga)
         db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno

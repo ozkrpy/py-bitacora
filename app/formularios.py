@@ -3,7 +3,7 @@ from wtforms import StringField, SubmitField, SelectField, PasswordField, Boolea
 #from wtforms.fields.core import BooleanField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
 from wtforms.fields.html5 import DateField
-from app.utilitarios import listar_agrupador, listar_tipos
+from app.utilitarios import listar_agrupador, listar_tarjetas, listar_tipos
 from app.models import User
 
 
@@ -29,6 +29,8 @@ class FormularioMovimientos(FlaskForm):
     monto_operacion = IntegerField('Monto', validators={DataRequired()})
     tipo_operacion = SelectField('Tipo', choices=listar_tipos(), coerce=int)
     tipo_operacion_view = StringField()
+    tarjeta = SelectField('Tarjeta', choices=listar_tarjetas(), coerce=int)
+    tarjeta_view = StringField()
     submit = SubmitField('Confirmar')
 
 class FormularioParametricos(FlaskForm):

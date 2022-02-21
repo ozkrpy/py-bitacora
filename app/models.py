@@ -44,7 +44,7 @@ class Movimientos(db.Model):
     id_tipo_movimiento = db.Column(db.Integer, db.ForeignKey('tipos_movimiento.id'), nullable=True)
     tipo_movimiento = db.relationship('TiposMovimiento',backref='tipo_movimiento', foreign_keys=[id_tipo_movimiento])
     id_tarjeta = db.Column(db.Integer, db.ForeignKey('tarjetas.id'), nullable=True)
-    tipo_movimiento = db.relationship('Tarjetas',backref='tarjetas', foreign_keys=[id_tarjeta])
+    tarjeta = db.relationship('Tarjetas',backref='tarjetas', foreign_keys=[id_tarjeta])
     def __repr__(self):
         return f'{self.id}, {self.date}, {self.fecha_operacion}, {self.descripcion}, {self.monto_operacion}, {self.id_tipo_movimiento}, {self.tipo_movimiento}'
 
