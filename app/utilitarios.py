@@ -163,3 +163,7 @@ def saldo_grupo(result):
             saldo += item['total']
     return saldo
 
+def movimientos_tarjeta(id, mes=0):
+    if mes==0:
+        return dbmodel.session.query(Movimientos).filter(Movimientos.id_tarjeta==id).order_by(Movimientos.fecha_operacion).all()
+    return dbmodel.session.query(Movimientos).filter(Movimientos.id_tarjeta==id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()

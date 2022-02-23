@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, LoginForm, RegistrationForm
 from app.models import Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
+from app.utilitarios import balance_cuenta, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -20,9 +20,11 @@ def index():
     fechas_referencia = {'mes_anterior':datetime.now() - timedelta(days=30), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now() + timedelta(days=31)}
     referencias_principales = referencias_vehiculo(cargas)
     balance_movimientos, balance_mensual = balance_cuenta()
+    saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
+    saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
     gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
     total_gasto = saldo_grupo(gastos)
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto) #usar ** permite que se manipule la variable directamente en el DOM
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -138,15 +140,14 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
-    operaciones = db.session.query(Movimientos).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
-    operaciones_atlas = db.session.query(Movimientos).filter(Movimientos.id_tarjeta==1).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
-    operaciones_basa =  db.session.query(Movimientos).filter(Movimientos.id_tarjeta==2).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
-    if operaciones:
-        balance_mes = balance_cuenta_puntual(operaciones)
-        balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
-        balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
-        balance_movimientos, balance_mensual = balance_cuenta()
-        return render_template('detalle_mes.html', mes=mes, operaciones=operaciones, balance_mes=balance_mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa)
+    operaciones_atlas = movimientos_tarjeta(1, mes)
+    balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
+    saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
+    operaciones_basa =  movimientos_tarjeta(2, mes)
+    balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
+    saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
+    balance_movimientos = saldo_basa + saldo_atlas
+    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required
