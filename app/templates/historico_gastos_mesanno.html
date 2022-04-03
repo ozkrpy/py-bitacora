@@ -38,7 +38,7 @@
 
 
 <div class="container-fluid mt-4">
-    <div class="row justify-content-center">
+    <!-- <div class="row justify-content-center"> -->
         <div class="card-columns">
             {% for fecha, detalle_gasto in gastos | groupby('fecha') %}
             <div class="card">
@@ -68,12 +68,12 @@
                     </div>
                 </div>
                 <div class="card-footer text-muted text-right">
-                    <a href="{{ url_for('historico_gastos_mesanno', anno=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
+                    <a href="{{ url_for('historico_gastos_detalle', periodo=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </div>
+    <!-- </div> -->
 </div>
 {% endblock %}
 
