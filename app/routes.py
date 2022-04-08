@@ -357,7 +357,6 @@ def nuevo_gasto():
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
-    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.id_agrupador_gastos).all()
     gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).all()
     if not gastos:
         precarga_deudas(periodo)
@@ -415,6 +414,9 @@ def borrar_gasto(gasto_id):
             db.session.delete(gasto)
             db.session.commit()
             flash('Lista de gastos actualizada.')
+            gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).all()
+            if not gastos:
+                return redirect(url_for('index'))
             return redirect(url_for('historico_gastos_detalle', periodo=mes))
         else:
             for k, v in form.errors.items():
@@ -428,7 +430,7 @@ def borrar_gasto(gasto_id):
 @login_required
 def historico_gastos():
     #gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
-    gastos = db.session.query(func.strftime("%Y",    GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
+    gastos = db.session.query(func.strftime("%Y", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
     return render_template('historico_gastos.html', gastos=gastos)
 
 @app.route('/historico_gastos_mesanno/<string:anno>', methods=['GET', 'POST'])
