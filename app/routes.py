@@ -305,9 +305,6 @@ def borrar_parametrico(parametrico_id, origen):
             db.session.commit()
             flash('Lista de '+ origen +' actualizada.')
             return redirect(url_for('parametrico'))
-        # else:
-        #     for k, v in form.errors.items():
-        #         flash('Error en: '+k)
         return render_template('borrar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
     else:
         flash('No se encontro la operacion a eliminar.')
@@ -429,7 +426,6 @@ def borrar_gasto(gasto_id):
 @app.route('/historico_gastos', methods=['GET', 'POST'])
 @login_required
 def historico_gastos():
-    #gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
     gastos = db.session.query(func.strftime("%Y", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
     return render_template('historico_gastos.html', gastos=gastos)
 

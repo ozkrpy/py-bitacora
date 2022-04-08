@@ -42,20 +42,26 @@ def referencias_vehiculo(cargas):
 def referencias_vehiculo_puntual(anno):
     sum_monto_carga=0
     sum_litros_carga=0
+    prom_litros=0
+    consumo=0
+    prom_recorrido=0
+    promedio_dias_recarga=0
     min_odo=dbmodel.session.query(func.min(Cargas.odometro)).filter(func.strftime("%Y", Cargas.fecha_carga)==anno).scalar()
     max_odo=dbmodel.session.query(func.max(Cargas.odometro)).filter(func.strftime("%Y", Cargas.fecha_carga)==anno).scalar()
     min_fecha_carga=dbmodel.session.query(func.min(Cargas.fecha_carga)).filter(func.strftime("%Y", Cargas.fecha_carga)==anno).scalar()
     max_fecha_carga=dbmodel.session.query(func.max(Cargas.fecha_carga)).filter(func.strftime("%Y", Cargas.fecha_carga)==anno).scalar()
     recorrido=max_odo-min_odo
     cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).all()
-    for carga in cargas:
-        sum_monto_carga += carga.monto_carga
-        sum_litros_carga += (carga.monto_carga/carga.precio)
-    prom_litros=(sum_litros_carga/len(cargas)) # dbmodel.session.query(func.avg(Cargas.monto_carga/Cargas.precio)).scalar()
-    consumo=((sum_litros_carga*100)/recorrido)
-    prom_recorrido=int(recorrido/len(cargas))
-    dias_ultima_carga=max_fecha_carga-min_fecha_carga
-    promedio_dias_recarga = (dias_ultima_carga.days / len(cargas))
+    if len(cargas) > 1:
+        for carga in cargas:
+            sum_monto_carga += carga.monto_carga
+            sum_litros_carga += (carga.monto_carga/carga.precio)
+        prom_litros=(sum_litros_carga/len(cargas)) # dbmodel.session.query(func.avg(Cargas.monto_carga/Cargas.precio)).scalar()
+        consumo=((sum_litros_carga*100)/recorrido)
+        prom_recorrido=int(recorrido/len(cargas))
+        dias_ultima_carga=max_fecha_carga-min_fecha_carga
+        promedio_dias_recarga = (dias_ultima_carga.days / len(cargas))
+    
     datos_calculados={ 
         "vehiculo": 'GAC GS3',
         "anno": anno,
