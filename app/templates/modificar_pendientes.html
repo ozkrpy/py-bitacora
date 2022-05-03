@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('modificar_pendiente', pendiente_id=pendiente_id) }}" method="post">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>MODIFICAR INFORMACION DEL PENDIENTE</strong></h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <tr><td>Descripcion:</td><td><strong>{{ form.descripcion(class="form-control") }}</strong></td></tr>
+                <tr><td>Monto:</td><td><strong>{{ form.monto(class="form-control") }}</strong></td></tr>
+                <tr><td>Estado:</td><td><strong>{{ form.estado(class="form-control") }}</strong></td></tr>
+                <tr><td>Cuotas:</td><td><strong>{{ form.cuotas(class="form-control") }}</strong></td></tr>
+                <tr><td>Pagadas:</td><td><strong>{{ form.cuotas_pagadas(class="form-control") }}</strong></td></tr>
+            </table>
+        </div>    
+        <div class="card-footer text-muted text-right">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+        </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -64,3 +64,11 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('Please use a different email address.')
+
+class FormularioPendientes(FlaskForm):
+    descripcion = StringField('Descripcion', validators={DataRequired()})
+    monto = IntegerField('Monto', validators={DataRequired()})
+    estado = BooleanField('Estado')
+    cuotas = IntegerField('Cuotas')
+    cuotas_pagadas = IntegerField('Cuotas Pagadas')
+    submit = SubmitField('Confirmar')

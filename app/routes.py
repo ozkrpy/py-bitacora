@@ -2,8 +2,8 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, LoginForm, RegistrationForm
-from app.models import Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
+from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, LoginForm, RegistrationForm
+from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
 from app.utilitarios import balance_cuenta, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
@@ -253,7 +253,8 @@ def historial_operacion_messanno(anno):
 def parametrico():
     tipos_movimiento = TiposMovimiento.query.all()
     agrupador_gastos = AgrupadorGastos.query.all()
-    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos)
+    gastos_fijos = DeudasPendientes.query.all()
+    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos, gastos_fijos=gastos_fijos)
 
 @app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
 @login_required
@@ -451,4 +452,75 @@ def register():
         for k, v in form.errors.items():
             flash('Error en: '+k)
     return render_template('register.html', title='Register', form=form)
+
+@app.route('/modificar_pendiente/<int:pendiente_id>', methods=['GET', 'POST'])
+@login_required
+def modificar_pendiente(pendiente_id):
+    operacion = DeudasPendientes.query.get(pendiente_id)
+    form = FormularioPendientes()
+    if operacion:
+        if form.validate_on_submit():
+            operacion.descripcion = form.descripcion.data
+            operacion.monto = form.monto.data
+            operacion.estado = form.estado.data
+            operacion.cuotas = form.cuotas.data
+            operacion.cuotas_pagadas = form.cuotas_pagadas.data
+            db.session.commit()
+            flash('Se modifico la operacion con exito.')
+            return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        form.descripcion.data = operacion.descripcion
+        form.monto.data = operacion.monto
+        form.estado.data = operacion.estado
+        form.cuotas.data = operacion.cuotas
+        form.cuotas_pagadas.data = operacion.cuotas_pagadas
+        return render_template('modificar_pendientes.html', form=form, pendiente_id=pendiente_id)
+    else:
+        flash('No se encontro la operacion a modificar.')
+    return redirect(url_for('index'))
+
+@app.route('/borrar_pendiente/<int:pendiente_id>', methods=['GET', 'POST'])
+@login_required
+def borrar_pendiente(pendiente_id):
+    operacion = DeudasPendientes.query.get(pendiente_id)
+    form = FormularioPendientes()
+    if operacion:
+        form.descripcion.data = operacion.descripcion
+        form.monto.data = operacion.monto
+        form.estado.data = operacion.estado
+        form.cuotas.data = operacion.cuotas
+        form.cuotas_pagadas.data = operacion.cuotas_pagadas
+        if form.validate_on_submit():
+            db.session.delete(operacion)
+            db.session.commit()
+            flash('Operacion pendiente eliminada.')
+            return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        return render_template('borrar_pendientes.html', form=form, pendiente_id=pendiente_id)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('index'))   
+
+@app.route('/nuevo_pendiente', methods=['GET', 'POST'])
+@login_required
+def nuevo_pendiente():
+    form = FormularioPendientes()
+    if form.validate_on_submit():
+        operacion = DeudasPendientes(descripcion=form.descripcion.data,
+                        monto=form.monto.data, 
+                        estado=form.estado.data,
+                        cuotas=form.cuotas.data,
+                        cuotas_pagadas=form.cuotas_pagadas.data)
+        db.session.add(operacion)
+        db.session.commit()
+        flash('Nuevo gasto pendiente agregado con exito.') #esta bueno
+        return redirect(url_for('parametrico'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('nuevo_pendiente.html', form=form)
 
