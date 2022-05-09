@@ -1,7 +1,7 @@
 # LIBRERIA PARA FUNCIONES
 from datetime import datetime, date
-from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, Cargas, Tarjetas
-from app.parametros import DEUDA_BASICA
+from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimiento, Cargas, Tarjetas, DeudasPendientes
+# from app.parametros import DEUDA_BASICA
 from app import db as dbmodel
 from sqlalchemy import func
 
@@ -123,30 +123,26 @@ def listar_agrupador():
 
 def precarga_deudas(mes: str):
     fecha_generacion = datetime.strptime(mes, '%Y-%m')
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CASA', monto=DEUDA_BASICA['CASA'], operacion=False, pagado=False, id_agrupador_gastos=2)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='LAU', monto=DEUDA_BASICA['CHECHY'], operacion=False, pagado=False, id_agrupador_gastos=2)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SEGURO_AUTO', monto=DEUDA_BASICA['SEGURO_AUTO'], operacion=False, pagado=False, id_agrupador_gastos=3)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CONTADORA', monto=DEUDA_BASICA['CONTADORA'], operacion=False, pagado=False, id_agrupador_gastos=1)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='TV PERSONAL', monto=DEUDA_BASICA['CABLETV'], operacion=False, pagado=True, id_agrupador_gastos=1)
-    dbmodel.session.add(g)
-    dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='PAGO_TARJETA', monto=DEUDA_BASICA['PAGO_TARJETA'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CASA', monto=DEUDA_BASICA['CASA'], operacion=False, pagado=False, id_agrupador_gastos=2)
     # dbmodel.session.add(g)
     # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='COMBUSTIBLE', monto=DEUDA_BASICA['COMBUSTIBLE'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='LAU', monto=DEUDA_BASICA['CHECHY'], operacion=False, pagado=False, id_agrupador_gastos=2)
     # dbmodel.session.add(g)
     # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SUPERMERCADO', monto=DEUDA_BASICA['SUPERMERCADO'], operacion=False, pagado=False, id_agrupador_gastos=3)
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SEGURO_AUTO', monto=DEUDA_BASICA['SEGURO_AUTO'], operacion=False, pagado=False, id_agrupador_gastos=3)
     # dbmodel.session.add(g)
     # dbmodel.session.commit()
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CONTADORA', monto=DEUDA_BASICA['CONTADORA'], operacion=False, pagado=False, id_agrupador_gastos=1)
+    # dbmodel.session.add(g)
+    # dbmodel.session.commit()
+    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='TV PERSONAL', monto=DEUDA_BASICA['CABLETV'], operacion=False, pagado=True, id_agrupador_gastos=1)
+    # dbmodel.session.add(g)
+    # dbmodel.session.commit()
+    deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
+    for deuda in deudas:
+        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=False, id_agrupador_gastos=1)
+        dbmodel.session.add(g)
+        dbmodel.session.commit()
     return True
 
 def deuda_total(deudas):

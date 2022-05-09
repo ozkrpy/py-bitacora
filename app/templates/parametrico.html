@@ -23,7 +23,7 @@
             </div>
         </div>
         <div class="card-footer text-muted text-right">
-            <a href="{{ url_for('nueva_recarga') }}" class="btn btn-primary">AGREGAR TIPO</a>
+            <a href="{{ url_for('nuevo_parametrico', origen='TIPOS') }}" class="btn btn-primary">AGREGAR TIPO</a>
         </div>
     </div>
     <div class="card">
@@ -60,7 +60,7 @@
                     {% for fijo in gastos_fijos %}
                     <tr>
                         <td>{{ fijo.id }}</td>
-                        <td>{{ fijo.descripcion }} ({{ "Gs. {:,.0f}".format(fijo.monto).replace(",", ".") }})</td>
+                        <td>{{ fijo.descripcion }} ({{ "Gs. {:,.0f}".format(fijo.monto).replace(",", ".") }})<br><small>(Cuotas: {{ fijo.cuotas }}/{{ fijo.cuotas_pagadas }})</small></td>
                         <td class="align-self-end">
                             <a href="{{ url_for('modificar_pendiente', pendiente_id=fijo.id) }}"><i class="fa fa-pencil-square-o"></i></a>
                             <a href="{{ url_for('borrar_pendiente', pendiente_id=fijo.id) }}" style="color:red"><i class="fa fa-trash-o"></i></a>
