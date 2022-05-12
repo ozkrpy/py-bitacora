@@ -71,4 +71,5 @@ class FormularioPendientes(FlaskForm):
     estado = BooleanField('Estado')
     cuotas = IntegerField('Cuotas')
     cuotas_pagadas = IntegerField('Cuotas Pagadas')
+    tipo = SelectField('Tipo', choices=listar_agrupador(), coerce=int)
     submit = SubmitField('Confirmar')

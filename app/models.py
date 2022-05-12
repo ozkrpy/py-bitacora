@@ -92,5 +92,6 @@ class DeudasPendientes(db.Model):
     estado = db.Column(db.Boolean, server_default=u'False')
     cuotas = db.Column(db.Integer)
     cuotas_pagadas = db.Column(db.Integer)
+    id_agrupador = db.Column(db.Integer, nullable=True)
     def __repr__(self):
         return f'{self.id}, {self.descripcion}, {self.monto}, {self.estado}, {self.cuotas}'

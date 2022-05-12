@@ -140,7 +140,7 @@ def precarga_deudas(mes: str):
     # dbmodel.session.commit()
     deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
     for deuda in deudas:
-        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=False, id_agrupador_gastos=1)
+        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=False, id_agrupador_gastos=deuda.id_agrupador)
         dbmodel.session.add(g)
         dbmodel.session.commit()
     return True

@@ -465,6 +465,7 @@ def modificar_pendiente(pendiente_id):
             operacion.estado = form.estado.data
             operacion.cuotas = form.cuotas.data
             operacion.cuotas_pagadas = form.cuotas_pagadas.data
+            operacion.id_agrupador = form.tipo.data
             db.session.commit()
             flash('Se modifico la operacion con exito.')
             return redirect(url_for('parametrico'))
@@ -476,6 +477,7 @@ def modificar_pendiente(pendiente_id):
         form.estado.data = operacion.estado
         form.cuotas.data = operacion.cuotas
         form.cuotas_pagadas.data = operacion.cuotas_pagadas
+        form.tipo.data = operacion.id_agrupador
         return render_template('modificar_pendientes.html', form=form, pendiente_id=pendiente_id)
     else:
         flash('No se encontro la operacion a modificar.')
@@ -492,6 +494,7 @@ def borrar_pendiente(pendiente_id):
         form.estado.data = operacion.estado
         form.cuotas.data = operacion.cuotas
         form.cuotas_pagadas.data = operacion.cuotas_pagadas
+        form.tipo.data = operacion.id_agrupador
         if form.validate_on_submit():
             db.session.delete(operacion)
             db.session.commit()
@@ -514,7 +517,8 @@ def nuevo_pendiente():
                         monto=form.monto.data, 
                         estado=form.estado.data,
                         cuotas=form.cuotas.data,
-                        cuotas_pagadas=form.cuotas_pagadas.data)
+                        cuotas_pagadas=form.cuotas_pagadas.data,
+                        id_agrupador=form.tipo.data)
         db.session.add(operacion)
         db.session.commit()
         flash('Nuevo gasto pendiente agregado con exito.') #esta bueno
