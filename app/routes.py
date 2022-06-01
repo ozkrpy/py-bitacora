@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -23,9 +23,10 @@ def index():
     balance_movimientos, balance_mensual = balance_cuenta()
     saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
     saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
+    saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
     gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
     total_gasto = saldo_grupo(gastos)
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa) #usar ** permite que se manipule la variable directamente en el DOM
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=total_gasto, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -147,8 +148,11 @@ def movimientos_mes(mes):
     operaciones_basa =  movimientos_tarjeta(2, mes)
     balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
     saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
-    balance_movimientos = saldo_basa + saldo_atlas
-    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa)
+    operaciones_interfisa =  movimientos_tarjeta(3, mes)
+    balance_mes_interfisa = balance_cuenta_puntual(operaciones_interfisa)
+    saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
+    balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
+    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa)
 
 #@app.route('/movimientos_mes_anno/<string:anno>', methods=['GET', 'POST'])
 #@login_required
@@ -355,12 +359,13 @@ def nuevo_gasto():
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).filter(GastosFijos.descripcion!='REFERENCIA').order_by(GastosFijos.fecha_pagar).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
     deuda = deuda_total(gastos)
-    disponibilidad = SALARIO_NETO - deuda
+    credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO - deuda
+    disponibilidad = credito - pagados
     return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])

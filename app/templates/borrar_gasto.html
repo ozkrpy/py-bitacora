@@ -15,8 +15,8 @@
               <tr><td>Fecha a pagar:</td><td><strong>{{ form.fecha_pagar.data }}</strong></td></tr>
               <tr><td>Descripcion:</td><td><strong>{{ form.descripcion.data }}</strong></td></tr>
               <tr><td>Monto:</td><td><strong>{{ form.monto.data }}</strong></td></tr>
-              <tr><td>Operacion:</td><td><strong>{{ form.operacion.data }}</strong></td></tr>
-              <tr><td>Pagado:</td><td><strong>{{ form.pagado.data }}</strong></td></tr>
+              <tr><td>Operacion:</td><td><strong>{{ "Credito" if form.operacion.data==True else "Deuda" }}</strong></td></tr>
+              <tr><td>Pagado:</td><td><strong>{{ "Pagado" if form.pagado.data==True else "Pendiente" }}</strong></td></tr>
               <tr><td>Acreedor:</td><td><strong>{{ form.agrupador_view.data }}</strong></td></tr>
             </table>
           </div>

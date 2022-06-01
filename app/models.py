@@ -67,7 +67,7 @@ class GastosFijos(db.Model):
     id_agrupador_gastos = db.Column(db.Integer, db.ForeignKey('agrupador_gastos.id'), nullable=True)
     agrupador_gastos = db.relationship('AgrupadorGastos',backref='agrupador_gastos', foreign_keys=[id_agrupador_gastos])
     def __repr__(self):
-        return f'{self.id}, {self.date}, {self.descripcion}, {self.monto}, {self.id_agrupador_gastos}, {self.agrupador_gastos}'
+        return f'{self.id}, {self.fecha_pagar}, {self.descripcion}, {self.monto}, {self.id_agrupador_gastos}, {self.agrupador_gastos}'
 
 class AgrupadorGastos(db.Model):
     __tablename__='agrupador_gastos'

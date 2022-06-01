@@ -138,9 +138,13 @@ def precarga_deudas(mes: str):
     # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='TV PERSONAL', monto=DEUDA_BASICA['CABLETV'], operacion=False, pagado=True, id_agrupador_gastos=1)
     # dbmodel.session.add(g)
     # dbmodel.session.commit()
+    
     deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
     for deuda in deudas:
-        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=False, id_agrupador_gastos=deuda.id_agrupador)
+        descontado=False
+        if deuda.descripcion=='DESCUENTO IPS' or deuda.descripcion=='SERVICIOS TELEFONIA' or deuda.descripcion=='INTERNET & TV':
+            descontado=True
+        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
         dbmodel.session.add(g)
         dbmodel.session.commit()
     return True
@@ -172,3 +176,13 @@ def movimientos_tarjeta(id, mes=0):
     if mes==0:
         return dbmodel.session.query(Movimientos).filter(Movimientos.id_tarjeta==id).order_by(Movimientos.fecha_operacion).all()
     return dbmodel.session.query(Movimientos).filter(Movimientos.id_tarjeta==id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
+
+def calcular_disponibilidad(mes: str):
+    credito = dbmodel.session.query(func.sum(GastosFijos.monto).label('credito')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador=='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).scalar() 
+    deudas_impagas = dbmodel.session.query(func.sum(GastosFijos.monto).label('pendientes')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador!='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==False).scalar()
+    deudas_pagadas = dbmodel.session.query(func.sum(GastosFijos.monto).label('pagados')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador!='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==True).scalar() 
+    if credito is None: credito = 0
+    if deudas_impagas is None: deudas_impagas = 0
+    if deudas_pagadas is None: deudas_pagadas = 0
+    #disponibilidad = credito - deudas_pagadas
+    return credito, deudas_impagas, deudas_pagadas
