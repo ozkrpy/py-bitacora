@@ -96,21 +96,21 @@ def balance_cuenta():
     for key,keydata in groupby(movimientos, key=itemgetter(0)):
         sumatoria_mes = 0
         for data in keydata:
-            if data.tipo == 10:
+            if data.tipo == 10 or data.tipo == 18:
                 sumatoria_mes -= data.total
             else:
                 sumatoria_mes += data.total
         item = (key, sumatoria_mes)
         balance_mes.append(item)
-    sum_deudas = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter(Movimientos.id_tipo_movimiento!=10).scalar()
-    sum_pagos = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter(Movimientos.id_tipo_movimiento==10).scalar()
+    sum_deudas = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter((Movimientos.id_tipo_movimiento!=10)&(Movimientos.id_tipo_movimiento!=18)).scalar()
+    sum_pagos = dbmodel.session.query(func.sum(Movimientos.monto_operacion)).filter((Movimientos.id_tipo_movimiento==10)|(Movimientos.id_tipo_movimiento==18)).scalar()
     sum_montos = sum_deudas - sum_pagos
     return sum_montos, balance_mes
 
 def balance_cuenta_puntual(movimientos):
     sum_montos = 0
     for movimiento in movimientos:
-        if movimiento.id_tipo_movimiento == 10:
+        if movimiento.id_tipo_movimiento == 10 or movimiento.id_tipo_movimiento == 18:
             sum_montos -= movimiento.monto_operacion
         else:
             sum_montos += movimiento.monto_operacion

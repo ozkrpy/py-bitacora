@@ -63,8 +63,12 @@
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td class="card-text text-right"><strong>Total deudas:</strong></td>
+                                <td class="card-text text-right"><strong>Pendientes:</strong></td>
                                 <td><strong>{{ "Gs. {:,.0f}".format(total_gasto).replace(",", ".") }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="card-text text-right"><strong>Disponible:</strong></td>
+                                <td><strong>{{ "Gs. {:,.0f}".format(disponibilidad).replace(",", ".") }}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -91,16 +95,23 @@
                         {% for movimiento in movimientos %}
                         <tbody>
                             <tr>
-                                <td><a href="{{ url_for('movimientos_mes', mes=movimiento[0]) }}">{{ movimiento[0] }}</a></td>
+                                <td class="card-text text-right"><a href="{{ url_for('movimientos_mes', mes=movimiento[0]) }}">{{ movimiento[0] }}</a></td>
                                 <td><strong>{{ "Gs. {:,.0f}".format(movimiento[1]).replace(",", ".") }}</strong></td>
                             </tr>
                         </tbody>
                         {% endfor %}
                         <tfoot>
                             <tr>
-                                <td class="card-text text-right"><strong>Balance:</strong></td>
-                                <td><strong>{{ "Gs. {:,.0f}".format(saldo_atlas|int).replace(",", ".") }}|{{ "Gs. {:,.0f}".format(saldo_basa|int).replace(",", ".") }}|{{ "Gs. {:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></td>
-                                <td></td>
+                                <td>
+                                    <div class="card-text text-right">Atlas: <strong>{{ "{:,.0f}".format(saldo_atlas|int).replace(",", ".") }}</strong></div>
+                                    <div class="card-text text-right">BASA: <strong>{{ "{:,.0f}".format(saldo_basa|int).replace(",", ".") }}</strong></div>
+                                    <div class="card-text text-right">Interfisa:<strong>{{ "{:,.0f}".format(saldo_interfisa|int).replace(",", ".") }}</strong></div>
+                                </td>
+                                <td>
+                                    <div>|</div>
+                                    <div>| TOTAL: <strong>{{ "{:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></div>
+                                    <div>|</div>
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
