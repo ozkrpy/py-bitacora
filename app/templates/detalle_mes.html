@@ -25,16 +25,20 @@
                     </div>  
                     <div class="row">
                         <div class="col">
-                            <small><strong>{{ mes }}</strong></small>
+                            <small><strong>{{ mes }}</strong></small><br>
+                            <small><strong>SALDO</strong></small>
                         </div>
                         <div class="col">
-                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_atlas).replace(",", ".") }}</strong></small>
+                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_atlas).replace(",", ".") }}</strong></small><br>
+                            <small><strong>({{ "Gs. {:,.0f}".format(saldo_atlas).replace(",", ".") }})</strong></small>
                         </div>
                         <div class="col">
-                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_basa).replace(",", ".") }}</strong></small>
+                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_basa).replace(",", ".") }}</strong></small><br>
+                            <small><strong>({{ "Gs. {:,.0f}".format(saldo_basa).replace(",", ".") }})</strong></small>
                         </div>
                         <div class="col">
-                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_interfisa).replace(",", ".") }}</strong></small>
+                            <small><strong>{{ "Gs. {:,.0f}".format(balance_mes_interfisa).replace(",", ".") }}</strong></small><br>
+                            <small><strong>({{ "Gs. {:,.0f}".format(saldo_interfisa).replace(",", ".") }})</strong></small>
                         </div>
                         <div class="col">
                             <small><strong>{{ "Gs. {:,.0f}".format(balance_movimientos).replace(",", ".") }}</strong></small>

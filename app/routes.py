@@ -154,7 +154,7 @@ def movimientos_mes(mes):
     balance_mes_interfisa = balance_cuenta_puntual(operaciones_interfisa)
     saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
     balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
-    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa)
+    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required

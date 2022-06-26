@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, PasswordField, BooleanField, IntegerField
 #from wtforms.fields.core import BooleanField, IntegerField
@@ -15,7 +16,7 @@ class LoginForm(FlaskForm):
 
 class FormularioCombustible(FlaskForm):
     fecha_registro = StringField()
-    fecha_carga = DateField('DatePicker', format='%Y-%m-%d')
+    fecha_carga = DateField('DatePicker', format='%Y-%m-%d', default=datetime.now())
     odometro = IntegerField('Odometro', validators={DataRequired()})
     emblema = StringField('Estacion', validators={DataRequired()})
     precio = IntegerField('Precio', validators={DataRequired()})
@@ -24,7 +25,7 @@ class FormularioCombustible(FlaskForm):
 
 class FormularioMovimientos(FlaskForm):
     fecha_registro = StringField()
-    fecha_operacion = DateField('DatePicker', format='%Y-%m-%d')
+    fecha_operacion = DateField('DatePicker', format='%Y-%m-%d', default=datetime.now())
     descripcion = StringField('Descripcion', validators={DataRequired()})
     monto_operacion = IntegerField('Monto', validators={DataRequired()})
     tipo_operacion = SelectField('Tipo', choices=listar_tipos(), coerce=int)
@@ -38,7 +39,7 @@ class FormularioParametricos(FlaskForm):
     submit = SubmitField('Confirmar')
 
 class FormularioGastos(FlaskForm):
-    fecha_pagar = DateField('DatePicker', format='%Y-%m-%d')
+    fecha_pagar = DateField('DatePicker', format='%Y-%m-%d', default=datetime.now())
     descripcion = StringField('Descripcion', validators={DataRequired()})
     monto = IntegerField('Monto', validators={DataRequired()})
     agrupador = SelectField('Tipo', choices=listar_agrupador(), coerce=int)
