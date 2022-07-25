@@ -25,7 +25,7 @@
                         <td>{{ carga.fecha_carga }}</td>
                         <td>{{ carga.emblema }}</td>
                         <td>{{ "Gs. {:,.0f}".format(carga.monto_carga).replace(",", ".") }}</td>
-                        <td>{{ '%0.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
+                        <td>{{ '%00.2f'|format(carga.monto_carga/carga.precio|float) }}</td>
                         <td>{{ (loop.nextitem.odometro-carga.odometro) if not loop.last else "N/D" }} km.
                         ({{'%0.2f'|format(((carga.monto_carga/carga.precio)*100)/(loop.nextitem.odometro-carga.odometro)|float) if not loop.last else "N/D" }} lts.)</td>
                         <td>{{ (loop.nextitem.fecha_carga-carga.fecha_carga).days if not loop.last else "N/D" }} dias.
