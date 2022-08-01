@@ -82,7 +82,15 @@ def nueva_recarga():
                       )
         db.session.add(carga)
         db.session.commit()
-        flash('Nueva recarga agregada con exito.') #esta bueno
+        carga = Movimientos(date=datetime.utcnow(),
+                        fecha_operacion=form.fecha_carga.data,
+                        descripcion=form.emblema.data, 
+                        monto_operacion=form.monto.data,
+                        id_tipo_movimiento=3,
+                        id_tarjeta=2)
+        db.session.add(carga)
+        db.session.commit()
+        flash('Nueva recarga agregada con exito.') 
         return redirect(url_for('index'))
     else:
         for k, v in form.errors.items():
@@ -228,6 +236,16 @@ def nueva_operacion():
                         id_tarjeta=form.tarjeta.data)
         db.session.add(carga)
         db.session.commit()
+        if (form.tipo_operacion.data==10): # 10 es el id de pago
+            carga = GastosFijos(date=datetime.utcnow(),
+                            fecha_pagar=form.fecha_operacion.data,
+                            descripcion=form.descripcion.data, 
+                            monto=form.monto_operacion.data,
+                            operacion=False,
+                            pagado=True,
+                            id_agrupador_gastos=3)
+            db.session.add(carga)
+            db.session.commit()
         flash('Nueva operacion agregada con exito.') #esta bueno
         return redirect(url_for('movimientos_mes', mes=mes))
     else:
