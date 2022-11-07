@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, LoginForm, RegistrationForm
+from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
 from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
 # from app.parametros import SALARIO_NETO
@@ -246,7 +246,7 @@ def nueva_operacion():
                             id_agrupador_gastos=3)
             db.session.add(carga)
             db.session.commit()
-        flash('Nueva operacion agregada con exito.') #esta bueno
+        flash('Nueva operacion agregada con exito.') 
         return redirect(url_for('movimientos_mes', mes=mes))
     else:
         for k, v in form.errors.items():
@@ -272,7 +272,8 @@ def parametrico():
     tipos_movimiento = TiposMovimiento.query.all()
     agrupador_gastos = AgrupadorGastos.query.all()
     gastos_fijos = DeudasPendientes.query.all()
-    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos, gastos_fijos=gastos_fijos)
+    tarjetas = Tarjetas.query.all()
+    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos, gastos_fijos=gastos_fijos, tarjetas=tarjetas)
 
 @app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
 @login_required
@@ -363,7 +364,7 @@ def nuevo_gasto():
                         id_agrupador_gastos=form.agrupador.data)
         db.session.add(carga)
         db.session.commit()
-        flash('Nueva operacion agregada con exito.') #esta bueno
+        flash('Nueva operacion agregada con exito.') 
         return redirect(url_for('historico_gastos_detalle', periodo=mes))
     else:
         for k, v in form.errors.items():
@@ -541,10 +542,77 @@ def nuevo_pendiente():
                         id_agrupador=form.tipo.data)
         db.session.add(operacion)
         db.session.commit()
-        flash('Nuevo gasto pendiente agregado con exito.') #esta bueno
+        flash('Nuevo gasto pendiente agregado con exito.') 
         return redirect(url_for('parametrico'))
     else:
         for k, v in form.errors.items():
             flash('Error en: '+k)
     return render_template('nuevo_pendiente.html', form=form)
 
+@app.route('/nueva_tarjeta', methods=['GET', 'POST'])
+@login_required
+def nueva_tarjeta():
+    form = FormularioTarjetas()
+    if form.validate_on_submit():
+        tarjeta = Tarjetas(
+                        banco=form.banco.data, 
+                        numero=form.numero.data, 
+                        vencimiento=form.vencimiento.data,
+                        estado=form.estado.data)
+        db.session.add(tarjeta)
+        db.session.commit()
+        flash('Nueva tarjeta agregada con exito.') 
+        return redirect(url_for('parametrico'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('nueva_tarjeta.html', form=form)
+
+@app.route('/modificar_tarjeta/<int:tarjeta_id>', methods=['GET', 'POST'])
+@login_required
+def modificar_tarjeta(tarjeta_id):
+    operacion = Tarjetas.query.get(tarjeta_id)
+    form = FormularioTarjetas()
+    if operacion:
+        if form.validate_on_submit():
+            operacion.banco = form.banco.data
+            operacion.numero = form.numero.data
+            operacion.vencimiento = form.vencimiento.data
+            operacion.estado = form.estado.data
+            db.session.commit()
+            flash('Se modifico la tarjeta con exito.')
+            return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        form.banco.data = operacion.banco
+        form.numero.data = operacion.numero
+        form.vencimiento.data = operacion.vencimiento
+        form.estado.data = operacion.estado
+        return render_template('modificar_tarjeta.html', form=form, tarjeta_id=tarjeta_id)
+    else:
+        flash('No se encontro la tarjeta a modificar.')
+    return redirect(url_for('index'))
+
+@app.route('/borrar_tarjeta/<int:tarjeta_id>', methods=['GET', 'POST'])
+@login_required
+def borrar_tarjeta(tarjeta_id):
+    operacion = Tarjetas.query.get(tarjeta_id)
+    form = FormularioTarjetas()
+    if operacion:
+        form.banco.data = operacion.banco
+        form.numero.data = operacion.numero
+        form.vencimiento.data = operacion.vencimiento
+        form.estado.data = operacion.estado
+        if form.validate_on_submit():
+            db.session.delete(operacion)
+            db.session.commit()
+            flash('Tarjeta de credito eliminada.')
+            return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        return render_template('borrar_tarjeta.html', form=form, tarjeta_id=tarjeta_id)
+    else:
+        flash('No se encontro la tarjeta a eliminar.')
+    return redirect(url_for('index'))

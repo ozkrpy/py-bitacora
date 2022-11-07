@@ -19,6 +19,31 @@ t = models.Tarjetas(banco='BASA Farmacenter', vencimiento='03/23')
 db.session.add(t)
 db.session.commit()
 
+
+'''
+WORKAROUND NUEVOS CAMPOS EN EL MODELO
+error: sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: tarjetas.numero
+
+COMENTAR campos nuevos en el models.py
+BACKUP file: data.db, folder: migration 
+DELETE FOLDER: migration 
+
+>>> import app 
+>>> from app import db
+>>> r=db.session.execute("ALTER TABLE tarjetas ADD COLUMN numero VARCHAR(20);") 
+>>> r=db.session.execute("ALTER TABLE tarjetas ADD COLUMN estado BOOLEAN ;")
+>>> r=db.session.execute("SELECT * FROM alembic_version;")
+>>> r=db.session.execute("DROP TABLE alembic_version;")
+
+DESCOMENTAR campos nuevos en el models.py
+
+PS C:\PrivateApps\Proyectos\py-bitacora> flask db init
+PS C:\PrivateApps\Proyectos\py-bitacora> flask db migrate -m "actualizacion de campos tj sin null"
+PS C:\PrivateApps\Proyectos\py-bitacora> flask db upgrade
+
+'''
+
+
 '''
 ## ALTER DE TABLAS
 

@@ -74,3 +74,10 @@ class FormularioPendientes(FlaskForm):
     cuotas_pagadas = IntegerField('Cuotas Pagadas')
     tipo = SelectField('Tipo', choices=listar_agrupador(), coerce=int)
     submit = SubmitField('Confirmar')
+
+class FormularioTarjetas(FlaskForm):
+    banco = StringField('Banco', validators={DataRequired()})
+    numero = StringField('Ult.Digito')
+    vencimiento = StringField('Venc.', validators={DataRequired()})
+    estado = BooleanField('Estado')
+    submit = SubmitField('Confirmar')

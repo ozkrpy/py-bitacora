@@ -80,7 +80,9 @@ class Tarjetas(db.Model):
     __tablename__='tarjetas'
     id = db.Column(db.Integer, primary_key=True)
     banco = db.Column(db.String(100), nullable=False)
+    numero = db.Column(db.String(100), nullable=False)
     vencimiento = db.Column(db.String(10), nullable=False)
+    estado = db.Column(db.Boolean, server_default=u'False')
     def __repr__(self):
         return f'{self.id}, {self.banco}'
 

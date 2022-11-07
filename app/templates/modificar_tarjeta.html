@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form action="{{ url_for('modificar_tarjeta', tarjeta_id=tarjeta_id) }}" method="post">
+  {{ form.csrf_token }}
+  <div class="card-columns">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>MODIFICAR DATOS DE LA TARJETA</strong></h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <tr><td>Banco:</td><td><strong>{{ form.banco(class="form-control") }}</strong></td></tr>
+                <tr><td>Ult.Digitos:</td><td><strong>{{ form.numero(class="form-control") }}</strong></td></tr>
+                <tr><td>Vencimiento:</td><td><strong>{{ form.vencimiento(class="form-control") }}</strong></td></tr>
+                <tr><td>Estado:</td><td><strong>{{ form.estado(class="form-control") }}</strong></td></tr>
+            </table>
+        </div>    
+        <div class="card-footer text-muted text-right">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="#" onclick="goBack()" class="btn btn-danger">Cancelar</a>
+        </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

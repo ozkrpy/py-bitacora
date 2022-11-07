@@ -52,6 +52,31 @@
     </div>
     <div class="card">
         <div class="card-header">
+            <h3><strong>TARJETAS DE CREDITO</strong></h3>
+        </div>
+        <div class="card-body">
+            <div>
+                <table class="table table-sm">
+                    {% for tarjeta in tarjetas %}
+                    <tr class="{{ 'text-dark' if tarjeta.estado else 'text-danger' }}">
+                        <td>{{ tarjeta.id }}</td>
+                        <td>{{ tarjeta.banco }} (*{{ tarjeta.numero }})</td>
+                        <td>{{ tarjeta.vencimiento }}</td>
+                        <td class="align-self-end">
+                            <a href="{{ url_for('modificar_tarjeta', tarjeta_id=tarjeta.id) }}"><i class="fa fa-pencil-square-o"></i></a>
+                            <a href="{{ url_for('borrar_tarjeta', tarjeta_id=tarjeta.id) }}" style="color:red"><i class="fa fa-trash-o"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="{{ url_for('nueva_tarjeta') }}" class="btn btn-primary">NUEVA TARJETA</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
             <h3><strong>PENDIENTES, FIJOS Y VARIABLES</strong></h3>
         </div>
         <div class="card-body">
