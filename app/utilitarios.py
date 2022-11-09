@@ -123,22 +123,6 @@ def listar_agrupador():
 
 def precarga_deudas(mes: str):
     fecha_generacion = datetime.strptime(mes, '%Y-%m')
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CASA', monto=DEUDA_BASICA['CASA'], operacion=False, pagado=False, id_agrupador_gastos=2)
-    # dbmodel.session.add(g)
-    # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='LAU', monto=DEUDA_BASICA['CHECHY'], operacion=False, pagado=False, id_agrupador_gastos=2)
-    # dbmodel.session.add(g)
-    # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='SEGURO_AUTO', monto=DEUDA_BASICA['SEGURO_AUTO'], operacion=False, pagado=False, id_agrupador_gastos=3)
-    # dbmodel.session.add(g)
-    # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='CONTADORA', monto=DEUDA_BASICA['CONTADORA'], operacion=False, pagado=False, id_agrupador_gastos=1)
-    # dbmodel.session.add(g)
-    # dbmodel.session.commit()
-    # g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion='TV PERSONAL', monto=DEUDA_BASICA['CABLETV'], operacion=False, pagado=True, id_agrupador_gastos=1)
-    # dbmodel.session.add(g)
-    # dbmodel.session.commit()
-    
     deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
     for deuda in deudas:
         descontado=False
@@ -186,3 +170,20 @@ def calcular_disponibilidad(mes: str):
     if deudas_pagadas is None: deudas_pagadas = 0
     #disponibilidad = credito - deudas_pagadas
     return credito, deudas_impagas, deudas_pagadas
+
+def movimientos_agrupados(mes):
+    movimientos = dbmodel.session.query(Movimientos.id.label('id_operacion'), 
+                                        Movimientos.fecha_operacion.label('fecha_operacion'), 
+                                        Movimientos.descripcion.label('descripcion'), 
+                                        Movimientos.monto_operacion.label('monto_operacion'), 
+                                        Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), 
+                                        TiposMovimiento.tipo.label('tipo_movimiento'), 
+                                        Movimientos.id_tarjeta.label('id_tarjeta'), 
+                                        Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all()
+    return movimientos
+
+def saldos_agrupados(mes):
+    compras = dbmodel.session.query(Tarjetas.banco.label('banco'), func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).group_by(Movimientos.id_tarjeta).all()
+    pagos = dbmodel.session.query(Tarjetas.banco.label('banco'), func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).group_by(Movimientos.id_tarjeta).all()
+    print(pagos, compras)
+    return compras, pagos

@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_agrupados
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -152,17 +152,21 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
-    operaciones_atlas = movimientos_tarjeta(1, mes)
-    balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
-    saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
-    operaciones_basa =  movimientos_tarjeta(2, mes)
-    balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
-    saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
-    operaciones_interfisa =  movimientos_tarjeta(3, mes)
-    balance_mes_interfisa = balance_cuenta_puntual(operaciones_interfisa)
-    saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
-    balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
-    return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa)
+    # operaciones_atlas = movimientos_tarjeta(1, mes)
+    # balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
+    # saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
+    # operaciones_basa =  movimientos_tarjeta(2, mes)
+    # balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
+    # saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
+    # operaciones_interfisa =  movimientos_tarjeta(3, mes)
+    # balance_mes_interfisa = balance_cuenta_puntual(operaciones_interfisa)
+    # saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
+    # balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
+    # return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, operaciones_tj=operaciones_tj)
+    operaciones_tj = movimientos_agrupados(mes)
+    compras, pagos = saldos_agrupados(mes)
+    print(compras, pagos)
+    return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required
