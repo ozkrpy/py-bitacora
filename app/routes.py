@@ -28,7 +28,8 @@ def index():
     # total_gasto = saldo_grupo(gastos)
     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
     disponibilidad = credito - pagadas
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad) #usar ** permite que se manipule la variable directamente en el DOM
+    balance=saldos_agrupados(0)
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -164,9 +165,8 @@ def movimientos_mes(mes):
     # balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
     # return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, operaciones_tj=operaciones_tj)
     operaciones_tj = movimientos_agrupados(mes)
-    compras, pagos = saldos_agrupados(mes)
-    print(compras, pagos)
-    return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj)
+    balances=saldos_agrupados(mes)
+    return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required

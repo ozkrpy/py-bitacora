@@ -183,7 +183,15 @@ def movimientos_agrupados(mes):
     return movimientos
 
 def saldos_agrupados(mes):
-    compras = dbmodel.session.query(Tarjetas.banco.label('banco'), func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).group_by(Movimientos.id_tarjeta).all()
-    pagos = dbmodel.session.query(Tarjetas.banco.label('banco'), func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).group_by(Movimientos.id_tarjeta).all()
-    print(pagos, compras)
-    return compras, pagos
+    balances=[]
+    for tarjeta in dbmodel.session.query(Tarjetas).filter(Tarjetas.estado==True).all():
+        if mes==0:
+            compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
+            pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).scalar()
+        else: 
+            compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
+            pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).scalar()
+        if compras is None: compras = 0
+        if pagos is None: pagos = 0
+        balances.append({'banco': tarjeta.banco, 'compras': compras, 'pagos': pagos, 'balance': compras-pagos})
+    return balances

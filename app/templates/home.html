@@ -103,14 +103,16 @@
                         <tfoot>
                             <tr>
                                 <td>
-                                    <div class="card-text text-right">Atlas: <strong>{{ "{:,.0f}".format(saldo_atlas|int).replace(",", ".") }}</strong></div>
+                                    {% for item in balance %}
+                                    <div class="card-text text-right">{{ item.banco }}: <strong>{{ "{:,.0f}".format(item.balance|int).replace(",", ".") }}</strong> | </div>
+                                    {% endfor %}
+                                    
+                                    <!-- <div class="card-text text-right">Atlas: <strong>{{ "{:,.0f}".format(saldo_atlas|int).replace(",", ".") }}</strong></div>
                                     <div class="card-text text-right">BASA: <strong>{{ "{:,.0f}".format(saldo_basa|int).replace(",", ".") }}</strong></div>
-                                    <div class="card-text text-right">Interfisa: <strong>{{ "{:,.0f}".format(saldo_interfisa|int).replace(",", ".") }}</strong></div>
+                                    <div class="card-text text-right">Interfisa: <strong>{{ "{:,.0f}".format(saldo_interfisa|int).replace(",", ".") }}</strong></div> -->
                                 </td>
                                 <td>
-                                    <div>|</div>
-                                    <div>| TOTAL: <strong>{{ "{:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></div>
-                                    <div>|</div>
+                                    <br><br><div>TOTAL: <strong>{{ "{:,.0f}".format(balance_movimientos|int).replace(",", ".") }}</strong></div>
                                 </td>
                             </tr>
                         </tfoot>

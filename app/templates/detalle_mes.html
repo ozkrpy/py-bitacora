@@ -2,48 +2,69 @@
 
 {% block main %}
 <div class="container-fluid text-center">
-    
-<div class="container-fluid mt-4">
-    <div class="row justify-content-center">
-        <div class="row">
-            
+    <div>
+        <div class="row justify-content-center">
+            <table class="table table-sm">
+                <thead class="thead-light">
+                    <th></th>
+                    <th>Gastos</th>
+                    <th>Pagos</th>
+                    <th>Balance</th>
+                </thead>
+                <tbody>
+                    {% for tarjeta in balances %}
+                    <tr>
+                        <td>{{ tarjeta.banco }}</td>
+                        <td>{{ tarjeta.compras }}</td>
+                        <td>{{ tarjeta.pagos }}</td>
+                        <td>{{ tarjeta.balance }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <br>
         </div>
-        <div class="card-columns">
-            {% for banco, movimientos in operaciones_tj | groupby('banco') %}
-            <div class="card">
-                <div class="card-header">
-                    <h3><strong>{{ banco }}</strong></h3>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead class="thead-light">
-                                <th></th>
-                                <th>Acreedor</th>
-                                <th class="card-text text-right">Monto</th>
-                                <th></th>
-                            </thead>
-                            <tbody>
-                                {% for movimiento in movimientos %}
-                                <tr>
-                                    <td></td>
-                                    <td>{{movimiento.descripcion}} ({{movimiento.tipo_movimiento}})</td> 
-                                    <td class="card-text text-right">{{ "Gs. {:,.0f}".format(movimiento.monto_operacion).replace(",", ".") }}</td>
-                                    <td class="align-self-end">
-                                        <a href="{{ url_for('modificar_operacion', operacion_id=movimiento.id_operacion) }}"><i class="fa fa-pencil-square-o"></i></a>
-                                        <a href="{{ url_for('borrar_operacion', operacion_id=movimiento.id_operacion) }}" style="color:red"><i class="fa fa-trash-o"></i></a>
-                                    </td>
-                                </tr>
-                                {% endfor %}                            
-                            </tbody>
-                        </table>
+    </div>
+    
+    <div class="container-fluid mt-4">
+        <div class="row justify-content-center">
+            <div class="card-columns">
+                {% for banco, movimientos in operaciones_tj | groupby('banco') %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3><strong>{{ banco }}</strong></h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="thead-light">
+                                    <th></th>
+                                    <th>Acreedor</th>
+                                    <th class="card-text text-right">Monto</th>
+                                    <th></th>
+                                </thead>
+                                <tbody>
+                                    {% for movimiento in movimientos %}
+                                    <tr>
+                                        <td></td>
+                                        <td class="card-text text-left">{{movimiento.fecha_operacion.strftime('%d')}} - {{movimiento.descripcion}} [{{movimiento.tipo_movimiento}}]</td> 
+                                        <td class="card-text text-right">{{ "Gs. {:,.0f}".format(movimiento.monto_operacion).replace(",", ".") }}</td>
+                                        <td class="align-self-end">
+                                            <a href="{{ url_for('modificar_operacion', operacion_id=movimiento.id_operacion) }}"><i class="fa fa-pencil-square-o"></i></a>
+                                            <a href="{{ url_for('borrar_operacion', operacion_id=movimiento.id_operacion) }}" style="color:red"><i class="fa fa-trash-o"></i></a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}                            
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted text-right">
+                        <a href="{{ url_for('nueva_operacion') }}" class="btn btn-primary">NUEVA OPERACION</a>
                     </div>
                 </div>
-                <div class="card-footer text-muted text-right">
-                    <a href="{{ url_for('nueva_operacion') }}" class="btn btn-primary">NUEVA OPERACION</a>
-                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
 </div>
