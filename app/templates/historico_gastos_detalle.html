@@ -37,10 +37,16 @@
                 <tfoot>
                     <tr>
                         <td></td>
-                        <td class="card-text text-right"><strong>Total:</strong></td>
+                        <td class="card-text text-right"><strong>Pendientes:</strong></td>
+                        <td class="card-text text-right"><strong>Gs. {{ "{:,.0f}".format(pendientes).replace(",", ".") }}</strong></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td class="card-text text-right"><strong>Pagados:</strong></td>
                         <td class="card-text text-right"><strong>Gs. {{ "{:,.0f}".format(deuda).replace(",", ".") }}</strong></td>
                         <td></td>
-                        <!-- <td></td> -->
                         <td></td>
                     </tr>
                     <tr>
@@ -48,7 +54,6 @@
                         <td class="card-text text-right"><strong>Disponibilidad:</strong></td>
                         <td class="card-text text-right"><strong>Gs. {{ "{:,.0f}".format(disponibilidad).replace(",", ".") }}</strong></td>
                         <td></td>
-                        <!-- <td></td> -->
                         <td></td>
                     </tr>
                 </tfoot>

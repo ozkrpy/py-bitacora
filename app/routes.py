@@ -385,7 +385,7 @@ def historico_gastos_detalle(periodo):
     deuda = deuda_total(gastos)
     credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO - deuda
     disponibilidad = credito - pagados
-    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad)
+    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad, pendientes=pendientes)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
 @login_required

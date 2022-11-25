@@ -85,7 +85,7 @@ def listar_tipos():
     return d#{(tipo.id, tipo.tipo) for tipo in tipos}
 
 def listar_tarjetas():
-    tipos = Tarjetas.query.all()
+    tipos = Tarjetas.query.filter(Tarjetas.estado==True).all()
     d = [(tipo.id, tipo.banco) for tipo in tipos]
     return d#{(tipo.id, tipo.tipo) for tipo in tipos}
 

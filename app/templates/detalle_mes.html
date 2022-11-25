@@ -2,22 +2,22 @@
 
 {% block main %}
 <div class="container-fluid text-center">
-    <div>
-        <div class="row justify-content-center">
-            <table class="table table-sm">
+    <div class="row justify-content-center">
+        <div>
+            <table class="table table-sm text-right">
                 <thead class="thead-light">
                     <th></th>
-                    <th>Gastos</th>
-                    <th>Pagos</th>
-                    <th>Balance</th>
+                    <th>Gastos (Gs.)</th>
+                    <th>Pagos (Gs.)</th>
+                    <th>Balance (Gs.)</th>
                 </thead>
                 <tbody>
                     {% for tarjeta in balances %}
                     <tr>
                         <td>{{ tarjeta.banco }}</td>
-                        <td>{{ tarjeta.compras }}</td>
-                        <td>{{ tarjeta.pagos }}</td>
-                        <td>{{ tarjeta.balance }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.compras).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.pagos).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.balance).replace(",", ".") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
