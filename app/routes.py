@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_agrupados
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -28,8 +28,9 @@ def index():
     # total_gasto = saldo_grupo(gastos)
     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
     disponibilidad = credito - pagadas
-    balance=saldos_agrupados(0)
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance) #usar ** permite que se manipule la variable directamente en el DOM
+    balance=balances_tarjetas()
+    id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -165,7 +166,7 @@ def movimientos_mes(mes):
     # balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
     # return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, operaciones_tj=operaciones_tj)
     operaciones_tj = movimientos_agrupados(mes)
-    balances=saldos_agrupados(mes)
+    balances=saldos_mes_tarjeta(mes)
     return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
@@ -225,10 +226,13 @@ def borrar_operacion(operacion_id):
         flash('No se encontro la operacion a eliminar.')
     return redirect(url_for('index'))
 
-@app.route('/nueva_operacion', methods=['GET', 'POST'])
+@app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
 @login_required
-def nueva_operacion():
+def nueva_operacion(banco_tarjeta=1):
     form = FormularioMovimientos()
+    tj = db.session.query(Tarjetas).filter(Tarjetas.banco==banco_tarjeta).first()
+    form.tarjeta.data = tj.id
+    form.tarjeta_view.data = tj.banco
     if form.validate_on_submit():
         mes = form.fecha_operacion.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
@@ -255,7 +259,7 @@ def nueva_operacion():
     else:
         for k, v in form.errors.items():
             flash('Error en: '+k)
-    return render_template('nueva_operacion.html', form=form)
+    return render_template('nueva_operacion.html', form=form, id_tarjeta=tarjeta)
 
 @app.route('/historial_operacion', methods=['GET', 'POST'])
 @login_required
@@ -437,7 +441,6 @@ def borrar_gasto(gasto_id):
             db.session.commit()
             flash('Lista de gastos actualizada.')
             gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.descripcion!='REFERENCIA').all()
-            print(gastos)
             if not gastos:
                 return redirect(url_for('index'))
             return redirect(url_for('historico_gastos_detalle', periodo=mes))

@@ -9,18 +9,32 @@
                     <th></th>
                     <th>Gastos (Gs.)</th>
                     <th>Pagos (Gs.)</th>
+                    <th>Descuentos (Gs.)</th>
+                    <th>Saldo Mes (Gs.)</th>
                     <th>Balance (Gs.)</th>
                 </thead>
                 <tbody>
                     {% for tarjeta in balances %}
                     <tr>
                         <td>{{ tarjeta.banco }}</td>
-                        <td>{{ "{:,.0f}".format(tarjeta.compras).replace(",", ".") }}</td>
-                        <td>{{ "{:,.0f}".format(tarjeta.pagos).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.compras_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.pagos_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.descuentos_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.balance_mes).replace(",", ".") }}</td>
                         <td>{{ "{:,.0f}".format(tarjeta.balance).replace(",", ".") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>TOTALES:</strong></td>
+                        <td>{{ "{:,.0f}".format(balances | sum(attribute='compras_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balances | sum(attribute='pagos_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balances | sum(attribute='descuentos_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balances | sum(attribute='balance_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balances | sum(attribute='balance')).replace(",", ".") }}</td>
+                    </tr>
+                </tfoot>
             </table>
             <br>
         </div>
@@ -60,7 +74,7 @@
                         </div>
                     </div>
                     <div class="card-footer text-muted text-right">
-                        <a href="{{ url_for('nueva_operacion') }}" class="btn btn-primary">NUEVA OPERACION</a>
+                        <a href="{{ url_for('nueva_operacion', tarjeta=banco) }}" class="btn btn-primary">NUEVA OPERACION</a>
                     </div>
                 </div>
                 {% endfor %}

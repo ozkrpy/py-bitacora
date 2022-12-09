@@ -172,26 +172,39 @@ def calcular_disponibilidad(mes: str):
     return credito, deudas_impagas, deudas_pagadas
 
 def movimientos_agrupados(mes):
-    movimientos = dbmodel.session.query(Movimientos.id.label('id_operacion'), 
-                                        Movimientos.fecha_operacion.label('fecha_operacion'), 
-                                        Movimientos.descripcion.label('descripcion'), 
-                                        Movimientos.monto_operacion.label('monto_operacion'), 
-                                        Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), 
-                                        TiposMovimiento.tipo.label('tipo_movimiento'), 
-                                        Movimientos.id_tarjeta.label('id_tarjeta'), 
-                                        Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all()
-    return movimientos
+    operaciones=[]
+    # movimientos = dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all()
+    for movimiento in dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all():
+        operaciones.append({'id_operacion':movimiento.id_operacion, 'fecha_operacion': movimiento.fecha_operacion, 'descripcion': movimiento.descripcion, 'monto_operacion': movimiento.monto_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'tipo_movimiento': movimiento.tipo_movimiento, 'id_tarjeta': movimiento.id_tarjeta, 'banco': movimiento.banco})
+    return operaciones
 
-def saldos_agrupados(mes):
+def balance_puntual_tarjeta(id):
+    compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
+    pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.in_([10])).scalar()
+    descuentos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.in_([18])).scalar()
+    if compras is None: compras = 0
+    if pagos is None: pagos = 0
+    if descuentos is None: descuentos = 0
+    return compras, pagos, descuentos
+
+def saldos_mes_tarjeta(mes):
     balances=[]
-    for tarjeta in dbmodel.session.query(Tarjetas).filter(Tarjetas.estado==True).all():
-        if mes==0:
-            compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
-            pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).scalar()
-        else: 
-            compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
-            pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([10, 18])).scalar()
-        if compras is None: compras = 0
-        if pagos is None: pagos = 0
-        balances.append({'banco': tarjeta.banco, 'compras': compras, 'pagos': pagos, 'balance': compras-pagos})
+    for tarjeta in dbmodel.session.query(Movimientos.id_tarjeta).distinct().filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).all():
+        banco =  dbmodel.session.query(Tarjetas.banco).filter(Tarjetas.id==tarjeta.id_tarjeta).scalar()
+        compras_mes = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
+        pagos_mes   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([10])).scalar()
+        descuentos_mes = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([18])).scalar()
+        compras, pagos, descuentos = balance_puntual_tarjeta(tarjeta.id_tarjeta)
+        if compras_mes is None: compras_mes = 0
+        if pagos_mes is None: pagos_mes = 0
+        if descuentos_mes is None: descuentos_mes = 0
+        balances.append({'banco': banco, 'compras_mes': compras_mes, 'pagos_mes': pagos_mes, 'descuentos_mes': descuentos_mes, 'balance_mes': compras_mes-pagos_mes-descuentos_mes, 'compras': compras, 'pagos': pagos, 'balance': compras-pagos-descuentos})
     return balances
+
+
+def balances_tarjetas():
+    saldos=[]
+    for tarjeta in dbmodel.session.query(Tarjetas).filter(Tarjetas.estado==True).all():
+        compras, pagos, descuentos = balance_puntual_tarjeta(tarjeta.id)
+        saldos.append({'banco': tarjeta.banco, 'compras': compras, 'pagos': pagos, 'descuentos': descuentos, 'balance': compras-pagos-descuentos})
+    return saldos

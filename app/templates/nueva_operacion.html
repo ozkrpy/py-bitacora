@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block main %}
-<form action="{{ url_for('nueva_operacion') }}" method="post">
+<form action="{{ url_for('nueva_operacion', tarjeta=id_tarjeta) }}" method="post">
     <div class="card-columns">
         {{ form.csrf_token }}
         <div class="card">
