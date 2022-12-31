@@ -228,9 +228,10 @@ def borrar_operacion(operacion_id):
 
 @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
 @login_required
-def nueva_operacion(banco_tarjeta=1):
+def nueva_operacion(tarjeta=1):
+    print(tarjeta)
     form = FormularioMovimientos()
-    tj = db.session.query(Tarjetas).filter(Tarjetas.banco==banco_tarjeta).first()
+    tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
     form.tarjeta.data = tj.id
     form.tarjeta_view.data = tj.banco
     if form.validate_on_submit():
