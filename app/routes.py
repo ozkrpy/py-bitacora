@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from flask import render_template, flash, redirect, url_for, request
 from app import app, db
-from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, LoginForm, RegistrationForm
+from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
 from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas
 # from app.parametros import SALARIO_NETO
@@ -229,7 +229,6 @@ def borrar_operacion(operacion_id):
 @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
 @login_required
 def nueva_operacion(tarjeta=1):
-    print(tarjeta)
     form = FormularioMovimientos()
     tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
     form.tarjeta.data = tj.id
@@ -273,7 +272,6 @@ def historial_operacion():
 def historial_operacion_messanno(anno):
     operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
     return render_template('historial_operaciones_anno.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
-
 
 @app.route('/parametrico', methods=['GET', 'POST'])
 @login_required
@@ -624,3 +622,17 @@ def borrar_tarjeta(tarjeta_id):
     else:
         flash('No se encontro la tarjeta a eliminar.')
     return redirect(url_for('index'))
+
+# @app.route('/', defaults={'page': 1})
+
+@app.route('/busqueda', methods=['GET', 'POST'])
+@login_required
+def busqueda():
+    debito = []
+    credito = []
+    form = FormularioBusqueda()
+    texto = request.args.get('q')
+    if texto:
+        debito = GastosFijos.query.filter(GastosFijos.descripcion.contains(texto))
+        credito = Movimientos.query.filter(Movimientos.descripcion.contains(texto))
+    return render_template('busqueda.html', form=form, debito=debito, credito=credito)

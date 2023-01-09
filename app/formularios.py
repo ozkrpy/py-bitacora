@@ -81,3 +81,7 @@ class FormularioTarjetas(FlaskForm):
     vencimiento = StringField('Venc.', validators={DataRequired()})
     estado = BooleanField('Estado')
     submit = SubmitField('Confirmar')
+
+class FormularioBusqueda(FlaskForm):
+    texto = StringField('Texto a buscar', validators={DataRequired()})
+    submit = SubmitField('Confirmar')
