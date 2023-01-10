@@ -633,6 +633,6 @@ def busqueda():
     form = FormularioBusqueda()
     texto = request.args.get('q')
     if texto:
-        debito = GastosFijos.query.filter(GastosFijos.descripcion.contains(texto))
-        credito = Movimientos.query.filter(Movimientos.descripcion.contains(texto))
+        debito = GastosFijos.query.filter(GastosFijos.descripcion.contains(texto)).order_by(GastosFijos.fecha_pagar.desc())
+        credito = Movimientos.query.filter(Movimientos.descripcion.contains(texto)).order_by(Movimientos.fecha_operacion.desc())
     return render_template('busqueda.html', form=form, debito=debito, credito=credito)
