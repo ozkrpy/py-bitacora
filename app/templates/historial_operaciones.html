@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block main %}
-<div class="card-columns">
+<!-- <div class="card-columns">
     {% for fecha, detalle_gasto in gastos | groupby('fecha') %}
     <div class="card card-responsive">
         <div class="card-header">
@@ -19,7 +19,45 @@
                     {% for gasto in detalle_gasto %}
                     <tr>
                         <td></td>
-                        <td>{{gasto.acreedor}}</td> 
+                        <td> 
+                            <a href="{{ url_for('operaciones_tipo', deudor=gasto.acreedor, fecha=fecha) }}">{{gasto.acreedor}}</a>
+                        </td>
+                        <td class="card-text text-right">{{ "Gs. {:,.0f}".format(gasto.total).replace(",", ".") }}</td>
+                        <td></td>
+                    </tr>
+                    {% endfor %}                            
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="{{ url_for('historial_operacion_messanno', anno=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
+        </div>
+    </div>
+    {% endfor %}
+</div> -->
+
+
+<div class="card-columns">
+    {% for fecha_operacion, detalle_gasto in operaciones | groupby('fecha_operacion') %}
+    <div class="card card-responsive">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>{{ fecha_operacion }}</strong></h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead class="thead-light">
+                    <th></th>
+                    <th>Acreedor</th>
+                    <th class="card-text text-right">Monto</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                    {% for gasto in detalle_gasto %}
+                    <tr>
+                        <td></td>
+                        <td> 
+                            <a href="{{ url_for('operaciones_tipo', deudor=gasto.id_tipo_movimiento, fecha=fecha_operacion) }}">{{gasto.acreedor}}</a>
+                        </td>
                         <td class="card-text text-right">{{ "Gs. {:,.0f}".format(gasto.total).replace(",", ".") }}</td>
                         <td></td>
                     </tr>
@@ -33,4 +71,6 @@
     </div>
     {% endfor %}
 </div>
+
+
 {% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="card-columns">
+    <div class="card card-responsive">
+        <div class="card-header">
+            <h3 class="card-title text-center"><strong>AÑO: {{ fecha }}</strong></h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead class="thead-light">
+                    <th>Fecha</th>
+                    <th>Acreedor</th>
+                    <th class="card-text text-right">Monto</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                    {% for operacion in operaciones %}
+                    <tr>
+                        
+                        <td class="card-text text-left">{{operacion.fecha_operacion.strftime('%d/%b')}}</td>
+                        <td class="card-text text-left">{{operacion.descripcion}} [{{operacion.tipo_movimiento.tipo}}]</td> 
+                        <td class="card-text text-right">{{ "Gs. {:,.0f}".format(operacion.monto_operacion).replace(",", ".") }}</td>
+                        <td></td>
+                    </tr>
+                    {% endfor %}                            
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer text-muted text-right">
+            <a href="#" onclick="goBack()" class="card-link" style="color:red"><strong>Volver</strong></a>
+            <a href="{{ url_for('historial_operacion_messanno', anno=fecha) }}" class="card-link"><strong>Ver detalles</strong></a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

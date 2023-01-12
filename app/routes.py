@@ -264,8 +264,27 @@ def nueva_operacion(tarjeta=1):
 @app.route('/historial_operacion', methods=['GET', 'POST'])
 @login_required
 def historial_operacion():
-    operaciones = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
-    return render_template('historial_operaciones.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
+    # gastos = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
+    gastos = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all()
+
+    operaciones=[]
+    # for movimiento in db.session.query(Movimientos.id.label('id_operacion'), func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)=='2022-07').order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all():
+    # for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y", Movimientos.fecha_operacion)=='2022').group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).all():
+    for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all():
+        # db.session.query(
+        #   func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), 
+        #   TiposMovimiento.tipo.label('acreedor'), 
+        #   func.sum(Movimientos.monto_operacion).label('total')
+        # ).join(TiposMovimiento)
+        # .group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo)
+        # .all()
+        # operaciones.append({'id_operacion':movimiento.id_operacion, 'fecha_operacion': movimiento.fecha_operacion, 'descripcion': movimiento.descripcion, 'monto_operacion': movimiento.monto_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'tipo_movimiento': movimiento.tipo_movimiento, 'id_tarjeta': movimiento.id_tarjeta, 'banco': movimiento.banco})
+        operaciones.append({'fecha_operacion':movimiento.fecha_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'acreedor': movimiento.acreedor, 'total': movimiento.total})
+        # print(operaciones)
+    
+    # print(operaciones)
+
+    return render_template('historial_operaciones.html', gastos=gastos, operaciones=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
 
 @app.route('/historial_operacion_anno/<string:anno>', methods=['GET', 'POST'])
 @login_required
@@ -636,3 +655,10 @@ def busqueda():
         debito = GastosFijos.query.filter(GastosFijos.descripcion.contains(texto)).order_by(GastosFijos.fecha_pagar.desc())
         credito = Movimientos.query.filter(Movimientos.descripcion.contains(texto)).order_by(Movimientos.fecha_operacion.desc())
     return render_template('busqueda.html', form=form, debito=debito, credito=credito)
+
+@app.route('/operaciones_tipo/<string:deudor>/<string:fecha>', methods=['GET', 'POST'])
+@login_required
+def operaciones_tipo(deudor, fecha):
+    form = FormularioMovimientos()
+    operaciones = db.session.query(Movimientos).filter(Movimientos.id_tipo_movimiento==deudor).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y", Movimientos.fecha_operacion)==fecha).order_by(Movimientos.id_tipo_movimiento).all()
+    return render_template('historico_operaciones_tipo.html', form=form, fecha=fecha, operaciones=operaciones)
