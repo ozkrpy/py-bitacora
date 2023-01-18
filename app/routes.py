@@ -228,14 +228,20 @@ def borrar_operacion(operacion_id):
 
 @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
 @login_required
-def nueva_operacion(tarjeta=1):
+def nueva_operacion(tarjeta):
+    print('param:', tarjeta)
     form = FormularioMovimientos()
-    tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
-    form.tarjeta.data = tj.id
-    form.tarjeta_view.data = tj.banco
+    if tarjeta:
+        tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
+        print('if true:', tj)
+    else:
+        tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
+        print('if else:', tj)
+    tarjeta = tj.banco
     if form.validate_on_submit():
         mes = form.fecha_operacion.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
+        print('tj del form:', form.tarjeta.data)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
@@ -264,27 +270,10 @@ def nueva_operacion(tarjeta=1):
 @app.route('/historial_operacion', methods=['GET', 'POST'])
 @login_required
 def historial_operacion():
-    # gastos = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
-    gastos = db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all()
-
     operaciones=[]
-    # for movimiento in db.session.query(Movimientos.id.label('id_operacion'), func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)=='2022-07').order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all():
-    # for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y", Movimientos.fecha_operacion)=='2022').group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).all():
     for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all():
-        # db.session.query(
-        #   func.strftime("%Y", Movimientos.fecha_operacion).label('fecha'), 
-        #   TiposMovimiento.tipo.label('acreedor'), 
-        #   func.sum(Movimientos.monto_operacion).label('total')
-        # ).join(TiposMovimiento)
-        # .group_by(func.strftime("%Y", Movimientos.fecha_operacion), TiposMovimiento.tipo)
-        # .all()
-        # operaciones.append({'id_operacion':movimiento.id_operacion, 'fecha_operacion': movimiento.fecha_operacion, 'descripcion': movimiento.descripcion, 'monto_operacion': movimiento.monto_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'tipo_movimiento': movimiento.tipo_movimiento, 'id_tarjeta': movimiento.id_tarjeta, 'banco': movimiento.banco})
         operaciones.append({'fecha_operacion':movimiento.fecha_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'acreedor': movimiento.acreedor, 'total': movimiento.total})
-        # print(operaciones)
-    
-    # print(operaciones)
-
-    return render_template('historial_operaciones.html', gastos=gastos, operaciones=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
+    return render_template('historial_operaciones.html', operaciones=operaciones)
 
 @app.route('/historial_operacion_anno/<string:anno>', methods=['GET', 'POST'])
 @login_required
@@ -641,8 +630,6 @@ def borrar_tarjeta(tarjeta_id):
     else:
         flash('No se encontro la tarjeta a eliminar.')
     return redirect(url_for('index'))
-
-# @app.route('/', defaults={'page': 1})
 
 @app.route('/busqueda', methods=['GET', 'POST'])
 @login_required
