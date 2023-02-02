@@ -21,6 +21,8 @@ class FormularioCombustible(FlaskForm):
     emblema = StringField('Estacion', validators={DataRequired()})
     precio = IntegerField('Precio', validators={DataRequired()})
     monto = IntegerField('Monto', validators={DataRequired()})
+    tarjeta = SelectField('Tarjeta', choices=listar_tarjetas(), coerce=int)
+    tarjeta_view = StringField()
     submit = SubmitField('Confirmar')
 
 class FormularioMovimientos(FlaskForm):

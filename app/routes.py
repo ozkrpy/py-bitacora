@@ -74,6 +74,8 @@ def recargas_detalle(anno):
 @login_required
 def nueva_recarga():
     form = FormularioCombustible()
+    if form.fecha_carga.data is None:
+        form.fecha_carga.data = datetime.now()
     if form.validate_on_submit():
         carga = Cargas(date=datetime.utcnow(), 
                        fecha_carga=form.fecha_carga.data,
@@ -84,12 +86,13 @@ def nueva_recarga():
                       )
         db.session.add(carga)
         db.session.commit()
+        print(form.tarjeta.data)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_carga.data,
                         descripcion=form.emblema.data, 
                         monto_operacion=form.monto.data,
                         id_tipo_movimiento=3,
-                        id_tarjeta=2)
+                        id_tarjeta=form.tarjeta.data)
         db.session.add(carga)
         db.session.commit()
         flash('Nueva recarga agregada con exito.') 
@@ -154,17 +157,6 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
-    # operaciones_atlas = movimientos_tarjeta(1, mes)
-    # balance_mes_atlas = balance_cuenta_puntual(operaciones_atlas)
-    # saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
-    # operaciones_basa =  movimientos_tarjeta(2, mes)
-    # balance_mes_basa = balance_cuenta_puntual(operaciones_basa)
-    # saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
-    # operaciones_interfisa =  movimientos_tarjeta(3, mes)
-    # balance_mes_interfisa = balance_cuenta_puntual(operaciones_interfisa)
-    # saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
-    # balance_movimientos = saldo_basa + saldo_atlas + saldo_interfisa
-    # return render_template('detalle_mes.html', mes=mes, balance_movimientos=balance_movimientos, operaciones_atlas=operaciones_atlas, operaciones_basa=operaciones_basa, operaciones_interfisa=operaciones_interfisa, balance_mes_atlas=balance_mes_atlas, balance_mes_basa=balance_mes_basa, balance_mes_interfisa=balance_mes_interfisa, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, operaciones_tj=operaciones_tj)
     operaciones_tj = movimientos_agrupados(mes)
     balances=saldos_mes_tarjeta(mes)
     return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances)
@@ -229,19 +221,17 @@ def borrar_operacion(operacion_id):
 @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
 @login_required
 def nueva_operacion(tarjeta):
-    print('param:', tarjeta)
     form = FormularioMovimientos()
+    if form.fecha_operacion.data is None:
+        form.fecha_operacion.data = datetime.now()
     if tarjeta:
         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
-        print('if true:', tj)
     else:
         tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
-        print('if else:', tj)
     tarjeta = tj.banco
     if form.validate_on_submit():
         mes = form.fecha_operacion.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
-        print('tj del form:', form.tarjeta.data)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
@@ -367,6 +357,8 @@ def nuevo_parametrico(origen):
 @login_required
 def nuevo_gasto():
     form = FormularioGastos()
+    if form.fecha_pagar.data is None:
+        form.fecha_pagar.data = datetime.now()
     if form.validate_on_submit():
         mes = form.fecha_pagar.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
