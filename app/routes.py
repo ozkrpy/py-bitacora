@@ -75,7 +75,8 @@ def recargas_detalle(anno):
 def nueva_recarga():
     form = FormularioCombustible()
     if form.fecha_carga.data is None:
-        form.fecha_carga.data = datetime.now()
+        form.fecha_carga.data = datetime.today()
+        
     if form.validate_on_submit():
         carga = Cargas(date=datetime.utcnow(), 
                        fecha_carga=form.fecha_carga.data,
@@ -86,7 +87,6 @@ def nueva_recarga():
                       )
         db.session.add(carga)
         db.session.commit()
-        print(form.tarjeta.data)
         carga = Movimientos(date=datetime.utcnow(),
                         fecha_operacion=form.fecha_carga.data,
                         descripcion=form.emblema.data, 
@@ -223,7 +223,7 @@ def borrar_operacion(operacion_id):
 def nueva_operacion(tarjeta):
     form = FormularioMovimientos()
     if form.fecha_operacion.data is None:
-        form.fecha_operacion.data = datetime.now()
+        form.fecha_operacion.data = datetime.today()
     if tarjeta:
         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
     else:
@@ -358,7 +358,7 @@ def nuevo_parametrico(origen):
 def nuevo_gasto():
     form = FormularioGastos()
     if form.fecha_pagar.data is None:
-        form.fecha_pagar.data = datetime.now()
+        form.fecha_pagar.data = datetime.today()
     if form.validate_on_submit():
         mes = form.fecha_pagar.data.strftime('%Y-%m') 
         if not mes: mes = datetime.now().strftime("%Y-%m")
