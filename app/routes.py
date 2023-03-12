@@ -114,6 +114,7 @@ def modificar_recarga(recarga_id):
             recarga.emblema = form.emblema.data
             recarga.precio = form.precio.data
             recarga.monto_carga = form.monto.data
+            #recarga.ta
             db.session.commit()
             flash('Se modifico la recarga con exito.')
             return  redirect(url_for('recargas'))
@@ -225,7 +226,10 @@ def nueva_operacion(tarjeta):
     if form.fecha_operacion.data is None:
         form.fecha_operacion.data = datetime.today()
     if tarjeta:
+        print('tarjeta:', tarjeta)
         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
+        form.tarjeta.data=tj.id
+        print(tj)
     else:
         tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
     tarjeta = tj.banco
@@ -236,7 +240,7 @@ def nueva_operacion(tarjeta):
                         fecha_operacion=form.fecha_operacion.data,
                         descripcion=form.descripcion.data, 
                         monto_operacion=form.monto_operacion.data,
-                        id_tipo_movimiento=form.tipo_operacion.data,
+                        id_tipo_movimiento=form.tipo_operacion.data, 
                         id_tarjeta=form.tarjeta.data)
         db.session.add(carga)
         db.session.commit()
