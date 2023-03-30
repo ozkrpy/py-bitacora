@@ -226,10 +226,8 @@ def nueva_operacion(tarjeta):
     if form.fecha_operacion.data is None:
         form.fecha_operacion.data = datetime.today()
     if tarjeta:
-        print('tarjeta:', tarjeta)
         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
         form.tarjeta.data=tj.id
-        print(tj)
     else:
         tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
     tarjeta = tj.banco
