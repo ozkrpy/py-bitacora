@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -279,7 +279,7 @@ def parametrico():
     tipos_movimiento = TiposMovimiento.query.all()
     agrupador_gastos = AgrupadorGastos.query.all()
     gastos_fijos = DeudasPendientes.query.all()
-    tarjetas = Tarjetas.query.all()
+    tarjetas = resumenes_tarjeta_macro() # Tarjetas.query.all()
     return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos, gastos_fijos=gastos_fijos, tarjetas=tarjetas)
 
 @app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])

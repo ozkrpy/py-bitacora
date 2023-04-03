@@ -182,10 +182,12 @@ def balance_puntual_tarjeta(id):
     compras = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
     pagos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.in_([10])).scalar()
     descuentos   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.in_([18])).scalar()
+    intereses   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==id).filter(Movimientos.id_tipo_movimiento.in_([7])).scalar()
     if compras is None: compras = 0
     if pagos is None: pagos = 0
     if descuentos is None: descuentos = 0
-    return compras, pagos, descuentos
+    if intereses is None: intereses = 0
+    return compras, pagos, descuentos, intereses
 
 def saldos_mes_tarjeta(mes):
     balances=[]
@@ -194,7 +196,7 @@ def saldos_mes_tarjeta(mes):
         compras_mes = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.notin_([10, 18])).scalar()
         pagos_mes   = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([10])).scalar()
         descuentos_mes = dbmodel.session.query(func.sum(Movimientos.monto_operacion).label('saldo')).join(Tarjetas).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tarjeta==tarjeta.id_tarjeta).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).filter(Movimientos.id_tipo_movimiento.in_([18])).scalar()
-        compras, pagos, descuentos = balance_puntual_tarjeta(tarjeta.id_tarjeta)
+        compras, pagos, descuentos, intereses = balance_puntual_tarjeta(tarjeta.id_tarjeta)
         if compras_mes is None: compras_mes = 0
         if pagos_mes is None: pagos_mes = 0
         if descuentos_mes is None: descuentos_mes = 0
@@ -205,6 +207,14 @@ def saldos_mes_tarjeta(mes):
 def balances_tarjetas():
     saldos=[]
     for tarjeta in dbmodel.session.query(Tarjetas).filter(Tarjetas.estado==True).all():
-        compras, pagos, descuentos = balance_puntual_tarjeta(tarjeta.id)
+        compras, pagos, descuentos, intereses = balance_puntual_tarjeta(tarjeta.id)
         saldos.append({'banco': tarjeta.banco, 'compras': compras, 'pagos': pagos, 'descuentos': descuentos, 'balance': compras-pagos-descuentos})
     return saldos
+
+def resumenes_tarjeta_macro():
+    estados = []
+    for tarjeta in Tarjetas.query.all():
+        compras, pagos, descuentos, intereses = balance_puntual_tarjeta(tarjeta.id)
+        porcentaje_descuento = int((descuentos * 100) / compras)
+        estados.append({'id':tarjeta.id, 'banco': tarjeta.banco, 'numero': tarjeta.numero, 'vencimiento': tarjeta.vencimiento, 'estado': tarjeta.estado, 'compras': compras, 'pagos': pagos, 'descuentos': descuentos, 'intereses': intereses, 'porcentaje': porcentaje_descuento})
+    return estados
