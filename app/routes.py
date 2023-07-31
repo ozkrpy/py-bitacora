@@ -158,9 +158,11 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
+    date_obj = datetime.strptime(mes, '%Y-%m')
+    fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
     operaciones_tj = movimientos_agrupados(mes)
     balances=saldos_mes_tarjeta(mes)
-    return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances)
+    return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
 @login_required
@@ -383,6 +385,8 @@ def nuevo_gasto():
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
+    date_obj = datetime.strptime(periodo, '%Y-%m')
+    fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
     gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).filter(GastosFijos.descripcion!='REFERENCIA').order_by(GastosFijos.fecha_pagar).all()
     if not gastos:
         precarga_deudas(periodo)
@@ -390,7 +394,7 @@ def historico_gastos_detalle(periodo):
     deuda = deuda_total(gastos)
     credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO - deuda
     disponibilidad = credito - pagados
-    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad, pendientes=pendientes)
+    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
 @login_required

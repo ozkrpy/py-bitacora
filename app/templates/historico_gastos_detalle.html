@@ -4,7 +4,13 @@
 <div class="card">
     <div class="card-header">
         <h3 class="card-title text-center"><strong>GASTOS DEL MES</strong></h3>
-        <h5 class="card-title text-center"><strong>{{ periodo }}</strong></h5>
+        <div class="card-title text-center">
+            <table class="table table-sm table-borderless">
+                <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas.mes_anterior.strftime('%b') }}</strong></a></td>
+                <td><h5 class="card-title text-center"><strong>{{ fechas.mes_actual.strftime('%B') }}</strong></h5></td>
+                <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas.mes_siguiente.strftime('%b') }}</strong></a></td>
+            </table>
+        </div>  
     </div>
     <div class="card-body">
         <div class="table-responsive">

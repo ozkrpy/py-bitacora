@@ -2,6 +2,13 @@
 
 {% block main %}
 <div class="container-fluid text-center">
+    <div>
+        <table class="table table-sm table-borderless">
+            <td><a href="{{ url_for('movimientos_mes', mes=fechas.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas.mes_anterior.strftime('%b') }}</strong></a></td>
+            <td><h5 class="card-title text-center"><strong>{{ fechas.mes_actual.strftime('%B') }}</strong></h5></td>
+            <td><a href="{{ url_for('movimientos_mes', mes=fechas.mes_siguiente.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas.mes_siguiente.strftime('%b') }}</strong></a></td>
+        </table>
+    </div>
     <div class="row justify-content-center">
         <div>
             <table class="table table-sm text-right">
@@ -39,7 +46,6 @@
             <br>
         </div>
     </div>
-    
     <div class="container-fluid mt-4">
         <div class="row justify-content-center">
             <div class="card-columns">
