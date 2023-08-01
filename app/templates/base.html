@@ -60,8 +60,18 @@
               </li>
               <li class="nav-item active">
                 <a href="{{ url_for('busqueda') }}" class="nav-link d-flex flex-column">
-                <i class="fa fa-cogs fa-2x"></i>
+                <i class="fa fa-search fa-2x"></i>
                 <span class="d-none d-sm-inline"><i><strong>[ BUSCAR ]</strong></i></span></a>
+              </li>
+              <li class="nav-item active">
+                <a href="{{ url_for('historico_gastos_detalle', periodo='') }}" class="nav-link d-flex flex-column">
+                <i class="fa fa-money fa-2x"></i>
+                <span class="d-none d-sm-inline"><i><strong>[ GASTOS ]</strong></i></span></a>
+              </li>
+              <li class="nav-item active">
+                <a href="{{ url_for('movimientos_mes', mes='') }}" class="nav-link d-flex flex-column">
+                <i class="fa fa-credit-card fa-2x"></i>
+                <span class="d-none d-sm-inline"><i><strong>[ CREDITO ]</strong></i></span></a>
               </li>
             </ul>
         </div>

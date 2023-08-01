@@ -155,11 +155,12 @@ def borrar_recarga(recarga_id):
         flash('No se encontro la recarga a eliminar.')
     return redirect(url_for('index'))
 
+@app.route('/movimientos_mes/', defaults={'mes':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
-    date_obj = datetime.strptime(mes, '%Y-%m')
-    fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
+    meses = datetime.strptime(mes, '%Y-%m')
+    fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
     operaciones_tj = movimientos_agrupados(mes)
     balances=saldos_mes_tarjeta(mes)
     return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
@@ -382,6 +383,7 @@ def nuevo_gasto():
             flash('Error en: '+k)
     return render_template('nuevo_gasto.html', form=form)
 
+@app.route('/historico_gastos_detalle/', defaults={'periodo':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
 @app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
 @login_required
 def historico_gastos_detalle(periodo):
