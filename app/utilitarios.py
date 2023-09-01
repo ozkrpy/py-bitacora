@@ -215,6 +215,9 @@ def resumenes_tarjeta_macro():
     estados = []
     for tarjeta in Tarjetas.query.all():
         compras, pagos, descuentos, intereses = balance_puntual_tarjeta(tarjeta.id)
-        porcentaje_descuento = int((descuentos * 100) / compras)
+        if compras != 0:
+            porcentaje_descuento = int((descuentos * 100) / compras)
+        else: 
+            porcentaje_descuento = 0
         estados.append({'id':tarjeta.id, 'banco': tarjeta.banco, 'numero': tarjeta.numero, 'vencimiento': tarjeta.vencimiento, 'estado': tarjeta.estado, 'compras': compras, 'pagos': pagos, 'descuentos': descuentos, 'intereses': intereses, 'porcentaje': porcentaje_descuento})
     return estados
