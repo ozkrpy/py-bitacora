@@ -397,12 +397,12 @@ def nuevo_gasto():
 def historico_gastos_detalle(periodo):
     date_obj = datetime.strptime(periodo, '%Y-%m')
     fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).filter(GastosFijos.descripcion!='REFERENCIA').order_by(GastosFijos.fecha_pagar).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
     deuda = deuda_total(gastos)
-    credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO - deuda
+    credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO -  deuda
     disponibilidad = credito - pagados
     return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=deuda, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas)
 
@@ -455,7 +455,8 @@ def borrar_gasto(gasto_id):
             db.session.delete(gasto)
             db.session.commit()
             flash('Lista de gastos actualizada.')
-            gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.descripcion!='REFERENCIA').all()
+            #gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.descripcion!='REFERENCIA').all()
+            gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).all()
             if not gastos:
                 return redirect(url_for('index'))
             return redirect(url_for('historico_gastos_detalle', periodo=mes))

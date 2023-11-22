@@ -136,7 +136,8 @@ def precarga_deudas(mes: str):
 def deuda_total(deudas):
     saldo = 0
     for deuda in deudas:
-        if deuda.pagado:
+        # if deuda.pagado:
+        if deuda.pagado and deuda.descripcion!='REFERENCIA':
             if not deuda.operacion:
                 saldo += deuda.monto
             else:
@@ -162,13 +163,14 @@ def movimientos_tarjeta(id, mes=0):
     return dbmodel.session.query(Movimientos).filter(Movimientos.id_tarjeta==id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.fecha_operacion).all()
 
 def calcular_disponibilidad(mes: str):
-    credito = dbmodel.session.query(func.sum(GastosFijos.monto).label('credito')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador=='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).scalar() 
+    # credito = dbmodel.session.query(func.sum(GastosFijos.monto).label('credito')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador=='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).scalar() 
+    credito = dbmodel.session.query(func.sum(GastosFijos.monto).label('credito')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador=='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==True).scalar() 
     deudas_impagas = dbmodel.session.query(func.sum(GastosFijos.monto).label('pendientes')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador!='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==False).scalar()
     deudas_pagadas = dbmodel.session.query(func.sum(GastosFijos.monto).label('pagados')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador!='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==True).scalar() 
     if credito is None: credito = 0
     if deudas_impagas is None: deudas_impagas = 0
-    if deudas_pagadas is None: deudas_pagadas = 0
-    #disponibilidad = credito - deudas_pagadas
+    if deudas_pagadas is None: deudas_pagadas = 0  
+    #disponibilidad = credito - deudas_pagadas 
     return credito, deudas_impagas, deudas_pagadas
 
 def movimientos_agrupados(mes):
