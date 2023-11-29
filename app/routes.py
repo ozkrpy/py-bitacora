@@ -160,16 +160,10 @@ def borrar_recarga(recarga_id):
 @login_required
 def movimientos_mes(mes):
     defaults={'mes':datetime.now().strftime('%Y-%m')}
-    print(mes,'defaults:', defaults)
-    #mes='2023-09'
-    
     meses = datetime.strptime(mes, '%Y-%m')
     fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
-    #mes='2023-08'
     operaciones_tj = movimientos_agrupados(mes)
     balances=saldos_mes_tarjeta(mes)
-    print(mes, fechas, meses)
-    #print(balances, operaciones_tj)
 
     return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
 

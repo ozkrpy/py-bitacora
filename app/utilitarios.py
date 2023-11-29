@@ -126,7 +126,7 @@ def precarga_deudas(mes: str):
     deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
     for deuda in deudas:
         descontado=False
-        if deuda.descripcion=='DESCUENTO IPS' or deuda.descripcion=='SERVICIOS TELEFONIA' or deuda.descripcion=='INTERNET & TV':
+        if deuda.descripcion=='DESCUENTO IPS' or deuda.descripcion=='SERVICIOS TELEFONIA' or deuda.descripcion=='INTERNET & TV' or deuda.descripcion=='REFERENCIA': 
             descontado=True
         g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
         dbmodel.session.add(g)
@@ -169,8 +169,7 @@ def calcular_disponibilidad(mes: str):
     deudas_pagadas = dbmodel.session.query(func.sum(GastosFijos.monto).label('pagados')).join(AgrupadorGastos).filter(AgrupadorGastos.agrupador!='CREDITO').filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.pagado==True).scalar() 
     if credito is None: credito = 0
     if deudas_impagas is None: deudas_impagas = 0
-    if deudas_pagadas is None: deudas_pagadas = 0  
-    #disponibilidad = credito - deudas_pagadas 
+    if deudas_pagadas is None: deudas_pagadas = 0
     return credito, deudas_impagas, deudas_pagadas
 
 def movimientos_agrupados(mes):
