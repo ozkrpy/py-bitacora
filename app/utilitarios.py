@@ -140,7 +140,7 @@ def deuda_total(deudas):
         if deuda.pagado and deuda.descripcion!='REFERENCIA':
             if not deuda.operacion:
                 saldo += deuda.monto
-            else:
+            else: 
                 saldo -= deuda.monto
     return saldo
 
