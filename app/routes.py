@@ -21,16 +21,17 @@ def index():
     fechas_referencia = {'mes_anterior_2':datetime.now()-relativedelta(months=2), 'mes_anterior':datetime.now()-relativedelta(months=1), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now()+relativedelta(months=1), 'mes_siguiente_2':datetime.now()+relativedelta(months=2)}
     referencias_principales = referencias_vehiculo(cargas)
     balance_movimientos, balance_mensual = balance_cuenta()
-    saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
-    saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
-    saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
+    # saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
+    # saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
+    # saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
     gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
     # total_gasto = saldo_grupo(gastos)
     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
     disponibilidad = credito - pagadas
     balance=balances_tarjetas()
     id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+    # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -398,7 +399,8 @@ def historico_gastos_detalle(periodo):
     deuda = deuda_total(gastos)
     credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO -  deuda
     disponibilidad = credito - pagados
-    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=pagados, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas)
+    balance_movimientos, balance_mensual = balance_cuenta()
+    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=pagados, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas, balance_movimientos=balance_movimientos)
 
 @app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
 @login_required
