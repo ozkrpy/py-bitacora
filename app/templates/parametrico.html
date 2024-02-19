@@ -88,7 +88,7 @@
             <div>
                 <table class="table table-sm">
                     {% for fijo in gastos_fijos %}
-                    <tr>
+                    <tr class="{{ 'text-dark' if fijo.estado else 'text-danger' }}">
                         <td>{{ fijo.id }}</td>
                         <td>{{ fijo.descripcion }} ({{ "Gs. {:,.0f}".format(fijo.monto).replace(",", ".") }})<br><small>(Cuotas: {{ fijo.cuotas_pagadas }}/{{ fijo.cuotas }})</small></td>
                         <td class="align-self-end">
