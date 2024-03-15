@@ -248,7 +248,7 @@ def nueva_operacion(tarjeta):
                         id_tarjeta=form.tarjeta.data)
         db.session.add(carga)
         db.session.commit()
-        if (form.tipo_operacion.data==10): # 10 es el id de pago
+        if (form.tipo_operacion.data==10): # 10 es el id de pago 
             carga = GastosFijos(date=datetime.utcnow(),
                             fecha_pagar=form.fecha_operacion.data,
                             descripcion=form.descripcion.data, 
@@ -258,7 +258,7 @@ def nueva_operacion(tarjeta):
                             id_agrupador_gastos=3)
             db.session.add(carga)
             db.session.commit()
-        flash('Nueva operacion agregada con exito.') 
+        flash('Nueva operacion agregada con exito.')
         return redirect(url_for('movimientos_mes', mes=mes))
     else:
         for k, v in form.errors.items():

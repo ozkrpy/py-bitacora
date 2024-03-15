@@ -56,7 +56,7 @@
                     <table class="table table-sm">
                         {% for operacion in credito %}
                         <tr>
-                            <td>{{ operacion.descripcion }}
+                            <td><strong>{{ operacion.tarjeta.banco }}</strong> - {{ operacion.descripcion }} 
                             <br>
                             <small>{{ operacion.fecha_operacion }} - {{ "Gs. {:,.0f}".format(operacion.monto_operacion).replace(",", ".") }}</small>
                             </td>
