@@ -256,7 +256,7 @@ def nueva_operacion(tarjeta):
                             operacion=False,
                             pagado=True,
                             id_agrupador_gastos=3)
-            db.session.add(carga) 
+            db.session.add(carga)
             db.session.commit()
         flash('Nueva operacion agregada con exito.')
         return redirect(url_for('movimientos_mes', mes=mes))
