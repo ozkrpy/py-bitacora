@@ -144,7 +144,7 @@ def borrar_recarga(recarga_id):
         form.precio.data = recarga.precio 
         form.monto.data = recarga.monto_carga
         if form.validate_on_submit():
-            db.session.delete(recarga)
+            db.session.delete(recarga) 
             db.session.commit()
             flash('Lista de recargas actualizada.')
             return  redirect(url_for('recargas'))

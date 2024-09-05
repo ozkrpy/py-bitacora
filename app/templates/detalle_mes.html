@@ -21,7 +21,7 @@
                     <th>Balance (Gs.)</th>
                 </thead>
                 <tbody>
-                    {% for tarjeta in balances %}
+                    {% for tarjeta in balances | sort(attribute='banco') %}
                     <tr>
                         <td>{{ tarjeta.banco }}</td>
                         <td>{{ "{:,.0f}".format(tarjeta.compras_mes).replace(",", ".") }}</td>

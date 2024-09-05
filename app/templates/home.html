@@ -103,7 +103,7 @@
                         <tfoot>
                             <tr>
                                 <td>
-                                    {% for item in balance %}
+                                    {% for item in balance | sort(attribute='banco')%}
                                     <div class="card-text text-right">{{ item.banco }}: <strong>{{ "{:,.0f}".format(item.balance|int).replace(",", ".") }}</strong> | </div>
                                     {% endfor %}
  
