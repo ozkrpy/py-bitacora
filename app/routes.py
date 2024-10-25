@@ -150,7 +150,7 @@ def borrar_recarga(recarga_id):
             return  redirect(url_for('recargas'))
         else:
             for k, v in form.errors.items():
-                flash('Error en: '+k)
+                flash('Error en: '+k) 
         return render_template('borrar_recarga.html', form=form, recarga_id=recarga_id)
     else:
         flash('No se encontro la recarga a eliminar.')
