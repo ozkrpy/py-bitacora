@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div>
+    <div class="card-text text-center">
+        <a href="{{ url_for('historial_operacion') }}" class="card-link">Ver todo el historial</a>
+    </div>
+
+    {% for balance in balance_anno %}
+    <div class="card">
+        <div>
+            <table class="table">
+                <thead>
+                    <th>Banco</th>
+                    <th>Gastos</th>
+                    <th>Pagos</th>
+                    <th>Descuentos</th>
+                    <th>Saldo</th>
+                </thead>
+                <tbody>
+                    {% for tarjeta in balance %}
+                    <tr>
+                        <td>{{ tarjeta.banco }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.compras_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.pagos_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.descuentos_mes).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(tarjeta.balance_mes).replace(",", ".") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>TOTALES:</strong></td>
+                        <td>{{ "{:,.0f}".format(balance | sum(attribute='compras_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balance | sum(attribute='pagos_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balance | sum(attribute='descuentos_mes')).replace(",", ".") }}</td>
+                        <td>{{ "{:,.0f}".format(balance | sum(attribute='balance_mes')).replace(",", ".") }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% endfor %}                
+</div>
+{% endblock %}

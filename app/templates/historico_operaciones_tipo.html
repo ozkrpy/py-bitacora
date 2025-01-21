@@ -18,7 +18,7 @@
                     <tr>
                         
                         <td class="card-text text-left">{{operacion.fecha_operacion.strftime('%d/%b')}}</td>
-                        <td class="card-text text-left">{{operacion.descripcion}} [{{operacion.tipo_movimiento.tipo}}]</td> 
+                        <td class="card-text text-left">{{operacion.descripcion}} [{{operacion.tipo_movimiento.tipo}}] - {{ operacion.tarjeta.banco }}</td> 
                         <td class="card-text text-right">{{ "Gs. {:,.0f}".format(operacion.monto_operacion).replace(",", ".") }}</td>
                         <td></td>
                     </tr>

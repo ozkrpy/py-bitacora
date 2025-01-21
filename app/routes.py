@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro, movimientos_anno_tarjeta_balance
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -160,12 +160,12 @@ def borrar_recarga(recarga_id):
 @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
 @login_required
 def movimientos_mes(mes):
+    # print(datetime.now().strftime('%Y-%m'), mes)
     defaults={'mes':datetime.now().strftime('%Y-%m')}
     meses = datetime.strptime(mes, '%Y-%m')
     fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
     operaciones_tj = movimientos_agrupados(mes)
     balances=saldos_mes_tarjeta(mes)
-
     return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
 
 @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
@@ -392,7 +392,8 @@ def nuevo_gasto():
 def historico_gastos_detalle(periodo):
     date_obj = datetime.strptime(periodo, '%Y-%m')
     fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
+    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
@@ -408,7 +409,7 @@ def modificar_gasto(gasto_id):
     gasto = GastosFijos.query.get(gasto_id)
     form = FormularioGastos()
     if gasto:
-        if form.validate_on_submit():
+        if form.validate_on_submit(): 
             mes = gasto.fecha_pagar.strftime('%Y-%m') 
             gasto.fecha_pagar = form.fecha_pagar.data 
             gasto.descripcion = form.descripcion.data
@@ -650,7 +651,21 @@ def busqueda():
 
 @app.route('/operaciones_tipo/<string:deudor>/<string:fecha>', methods=['GET', 'POST'])
 @login_required
-def operaciones_tipo(deudor, fecha):
+def operaciones_tipo(deudor, fecha): 
     form = FormularioMovimientos()
     operaciones = db.session.query(Movimientos).filter(Movimientos.id_tipo_movimiento==deudor).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y", Movimientos.fecha_operacion)==fecha).order_by(Movimientos.id_tipo_movimiento).all()
     return render_template('historico_operaciones_tipo.html', form=form, fecha=fecha, operaciones=operaciones)
+
+@app.route('/movimientos_anno_balance/', defaults={'anno':datetime.now().strftime('%Y')}, methods=['GET', 'POST'])
+@login_required
+def movimientos_anno_balance(anno):
+    # defaults={'anno':datetime.now().strftime('%Y')}
+    # meses = datetime.strptime(mes, '%Y-%m')
+    # fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
+    # operaciones_tj = movimientos_agrupados(mes)
+    # balances=saldos_mes_tarjeta(mes)
+    balance_anno = movimientos_anno_tarjeta_balance(anno)
+    for balance in balance_anno:
+        for registro in balance:
+            # print (registro)
+    return render_template('balance_anno_tarjeta.html', balance_anno=balance_anno)

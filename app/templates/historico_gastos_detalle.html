@@ -3,7 +3,10 @@
 {% block main %}
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title text-center"><strong>GASTOS DEL MES</strong></h3>
+        <div class="card-title text-center">
+            <h3 class="card-title text-center"><strong>GASTOS DEL MES</strong></h3>
+            <a href="{{ url_for('historico_gastos') }}" class="card-link">Ver todo el historial</a>
+        </div>
         <div class="card-title text-center">
             <table class="table table-sm table-borderless">
                 <td><a href="{{ url_for('historico_gastos_detalle', periodo=fechas.mes_anterior.strftime('%Y-%m')) }}" class="card-link"><strong>{{ fechas.mes_anterior.strftime('%b') }}</strong></a></td>
