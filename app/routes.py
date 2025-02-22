@@ -665,7 +665,7 @@ def movimientos_anno_balance(anno):
     # operaciones_tj = movimientos_agrupados(mes)
     # balances=saldos_mes_tarjeta(mes)
     balance_anno = movimientos_anno_tarjeta_balance(anno)
-    for balance in balance_anno:
-        for registro in balance:
-            # print (registro)
+    # for balance in balance_anno:
+    #     for registro in balance:
+    #         print (registro)
     return render_template('balance_anno_tarjeta.html', balance_anno=balance_anno)
