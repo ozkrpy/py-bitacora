@@ -4,6 +4,7 @@ from app.models import AgrupadorGastos, GastosFijos, Movimientos, TiposMovimient
 # from app.parametros import DEUDA_BASICA
 from app import db as dbmodel
 from sqlalchemy import func
+from dateutil.relativedelta import relativedelta
 
 from itertools import groupby
 from operator import itemgetter
@@ -232,3 +233,16 @@ def movimientos_anno_tarjeta_balance(anno):
         if balances:
             tarjetas.append(balances)
     return tarjetas
+
+def movimiento_balances_mes_a_mes(anno):
+    periodo = []
+    start_date = datetime(int(anno), 1, 1)
+    end_date = datetime(int(anno), 12, 1)
+    current_date = start_date
+    while current_date <= end_date:
+        mes=current_date.strftime('%Y-%m')
+        balance_mes=saldos_mes_tarjeta(mes)
+        for balance in balance_mes:
+            periodo.append({"mes": mes, "banco": balance["banco"], "saldo": balance["balance_mes"]})
+        current_date += relativedelta(months=1)
+    return periodo

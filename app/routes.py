@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request
 from app import app, db
 from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
 from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro, movimientos_anno_tarjeta_balance
+from app.utilitarios import balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro, movimientos_anno_tarjeta_balance, movimiento_balances_mes_a_mes
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
@@ -277,7 +277,16 @@ def historial_operacion():
 @login_required
 def historial_operacion_messanno(anno):
     operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
-    return render_template('historial_operaciones_anno.html', gastos=operaciones)#, anno=anno, movimientos_anno=movimientos_anno, movimientos_anno_especifico=movimientos_anno_especifico, movimientos_mes_especifico=movimientos_mes_especifico, movimientos_mes_detalle=movimientos_mes_detalle)
+    balance_mes = movimiento_balances_mes_a_mes(anno) # datos de movimientos agrupados por mes y banco
+    months = sorted(list(set(item['mes'] for item in balance_mes))) # lista de meses en el balance
+    banks = sorted(list(set(item['banco'] for item in balance_mes))) # lista de bancos en el balance
+    restructured_data = {bank: {} for bank in banks} # reestructura los datos en un diccionario para facilitar el acceso
+    for item in balance_mes:
+        restructured_data[item['banco']][item['mes']] = item['saldo'] # agrupar banco y mes, y asignar el saldo
+    monthly_totals = {month: 0 for month in months}
+    for item in balance_mes:
+        monthly_totals[item['mes']] += item['saldo'] # calcula el total mensual sumando los saldos de todos los bancos
+    return render_template('historial_operaciones_anno.html', gastos=operaciones, data=restructured_data, months=months, monthly_totals=monthly_totals)
 
 @app.route('/parametrico', methods=['GET', 'POST'])
 @login_required

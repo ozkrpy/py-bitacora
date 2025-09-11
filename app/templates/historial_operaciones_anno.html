@@ -1,6 +1,38 @@
 {% extends "base.html" %}
 
 {% block main %}
+<div class="row justify-content-center">
+    <div class="row justify-content-center">
+        <table class="table table-sm text-right">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for month in months %}
+                    <th>{{ month }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for bank_name, balances in data.items() %}
+                <tr>
+                    <td>{{ bank_name }}</td>
+                    {% for month in months %}
+                    <td>{{ "{:,.0f}".format(balances.get(month, '-')).replace(",", ".") if balances.get(month) is not none else '-' }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    {% for month in months %}
+                    <th>{{ "{:,.0f}".format(monthly_totals.get(month, 0)).replace(",", ".") }}</th>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
 <div class="card-columns">
     {% for fecha, detalle_gasto in gastos | groupby('fecha') %}
     <div class="card card-responsive">
