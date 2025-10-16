@@ -127,9 +127,13 @@ def precarga_deudas(mes: str):
     deudas = dbmodel.session.query(DeudasPendientes).filter(DeudasPendientes.estado==True).all()
     for deuda in deudas:
         descontado=False
+        if deuda.cuotas > 0:
+            deuda.cuotas_pagadas += 1
+            dbmodel.session.add(deuda)
+            dbmodel.session.commit()
         if deuda.descripcion=='DESCUENTO IPS' or deuda.descripcion=='SERVICIOS TELEFONIA' or deuda.descripcion=='INTERNET & TV' or deuda.descripcion=='REFERENCIA' or deuda.descripcion=='S24': 
             descontado=True
-        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion, monto=deuda.monto, operacion=False, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
+        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion+"("+str(deuda.cuotas_pagadas)+"/"+str(deuda.cuotas)+")", monto=deuda.monto, operacion=False, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
         dbmodel.session.add(g)
         dbmodel.session.commit()
     return True
