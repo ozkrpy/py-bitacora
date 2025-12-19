@@ -405,6 +405,7 @@ def historico_gastos_detalle(periodo):
     # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
     # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id).all()
     gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar,GastosFijos.id_agrupador_gastos).all()
+    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar, GastosFijos.id).all()
     if not gastos:
         precarga_deudas(periodo)
         gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
