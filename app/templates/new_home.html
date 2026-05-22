@@ -1,0 +1,588 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom gap-3">
+        <div>
+            <h1 class="h3 mb-1 text-gray-800 fw-bold">Dashboard Financiero</h1>
+            <p class="text-muted mb-0">Periodo Actual: <span class="badge bg-secondary px-2 py-1 fs-6">{{ fechas_referencia['fecha_actual'].strftime('%B %Y') }}</span></p>
+        </div>
+
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted fw-semibold small mb-1">Disponibilidad Actual (mes)</h6>
+                            <h3 class="fw-bold text-success mb-0">Gs. {{ "{:,}".format(disponibilidad | int) }}</h3>
+                        </div>
+                        <div class="bg-success-subtle text-success rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted fw-semibold small mb-1">Gastos Pendientes (Mes)</h6>
+                            <h3 class="fw-bold text-danger mb-0">Gs. {{ "{:,}".format(total_gasto | int) }}</h3>
+                        </div>
+                        <div class="bg-danger-subtle text-danger rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted fw-semibold small mb-1">Deuda total credito</h6>
+                            <h3 class="fw-bold text-primary mb-0">Gs. {{ "{:,}".format(balance_movimientos | int) }}</h3>
+                        </div>
+                        <div class="bg-primary-subtle text-primary rounded-circle p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="bi bi-bank"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-gray-800"><i class="bi bi-car-front me-2 text-warning"></i>Bitácora Vehicular: {{ vehiculo }}</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary px-2.5 py-1 text-uppercase font-monospace small tracking-wider" data-bs-toggle="modal" data-bs-target="#modalCombustible">
+                        <i class="bi bi-fuel-pump-fill"></i>
+                        <span>Nueva Carga de Combustible</span>
+                    </button>
+                </div>
+                <div class="card-body px-4">
+                    <div class="row g-3">
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Distancia Total</small>
+                                <span class="fw-bold text-dark fs-5">{{ "{:,}".format(distancia_recorrida | int) }} km</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Consumo Promedio</small>
+                                <span class="fw-bold text-primary fs-5">{{ "%.2f"|format(consumo_por_100km) }} L/100k</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Inversión Combustible</small>
+                                <span class="fw-bold text-success fs-5">Gs. {{ "{:,}".format(suma_total_cargas | int) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Último Odómetro</small>
+                                <span class="fw-semibold text-muted font-monospace">{{ "{:,}".format(odometro_ultimo | int) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Promedio x Tanque</small>
+                                <span class="fw-semibold text-muted font-monospace">{{ promedio_recorrido_por_tanque }} km</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <div class="p-2 border rounded bg-light-subtle">
+                                <small class="text-muted d-block text-truncate">Dias de la ultima carga</small>
+                                <span class="fw-semibold text-muted font-monospace">{{ promedio_dias_carga }} días</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 px-4">
+                    <div class="mt-3 pt-2 border-top d-flex justify-content-between text-muted font-monospace small">
+                        <span>1ra Carga: {{ fecha_primera_carga }}</span>
+                        <span>Última: {{ fecha_ultima_carga }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+<div class="card border-0 shadow-sm h-100">
+    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-gray-800 fw-bold"><i class="bi bi-pie-chart-fill text-info me-2"></i>Resumen Gastos Fijos</h5>
+        <a href="{{ url_for('historico_gastos_fijos') }}" class="btn btn-sm btn-outline-primary px-2.5 py-1 text-uppercase font-monospace small tracking-wider">
+            <i class="bi bi-eye-fill me-1"></i> Ver Historial Gastos
+        </a>
+    </div>
+    
+    <div class="card-body px-4">
+        
+        {% if lista_meses_tabs %}
+        <div class="mb-3 position-relative" style="max-width: 100%;">
+            <ul class="nav nav-pills flex-nowrap overflow-x-auto scrollbar-hidden pb-1" 
+                role="tablist" 
+                style="-webkit-overflow-scrolling: touch; white-space: nowrap; gap: 4px;">
+                {% for tab in lista_meses_tabs %}
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link py-1.5 px-3 fw-medium btn-sm text-nowrap {% if tab.es_activo %}active bg-info text-white fw-bold shadow-sm{% else %}bg-light text-secondary{% endif %}" 
+                    href="{{ url_for(request.endpoint, mes=tab.mes, anno=tab.anno) }}" 
+                    style="font-size: 0.82rem; border-radius: 6px; transition: all 0.15s ease-in-out;">
+                        <i class="bi bi-calendar3 me-1 small"></i>
+                        {{ tab.label }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase font-monospace small">
+                    <tr>
+                        <th>Categoría / Agrupador</th>
+                        <th class="text-end pe-4">Presupuesto Ejecutado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if gastos %}
+                        {% for gasto in gastos %}
+                        <tr class="row-agrupador-clickable cursor-pointer" 
+                            data-agrupador-id="{{ gasto.id_agrupador_gastos }}" 
+                            data-agrupador-total="{{ gasto.total }}" 
+                            data-agrupador-nombre="{{ gasto.acreedor }}"
+                            data-anno="{{ anno_activo }}"
+                            data-mes='{{ "%02d" | format(mes_activo) }}'>
+                            <td>
+                                <span class="badge bg-info-subtle text-info-emphasis me-2"><i class="bi bi-tag-fill"></i></span>
+                                <span class="fw-semibold text-secondary target-agrupador-nombre">{{ gasto.acreedor }}</span>
+                            </td>
+                            <td class="text-end pe-4 font-monospace fw-bold text-dark">
+                                Gs. {{ "{:,}".format(gasto.total | int) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-4">No se registran gastos fijos generados para este periodo.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-gray-800"><i class="bi bi-credit-card-2-back me-2 text-primary"></i>Estado de Tarjetas</h5>
+                    <span class="text-muted small">Activa por defecto: <strong>{{ id_tarjeta }}</strong></span>
+                </div>
+                <div class="card-body px-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-uppercase font-monospace small">
+                                <tr>
+                                    <th>Entidad / Banco</th>
+                                    <th class="text-end">Compras</th>
+                                    <th class="text-end">Pagos</th>
+                                    <th class="text-end">Saldo Actual</th>
+                                    <th class="text-center" style="width: 80px;">Acciones</th> 
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if balance %}
+                                    {% for tarjeta in balance %}
+                                    <tr>
+                                        <td>
+                                            <span class="fw-semibold">{{ tarjeta['banco'] }}</span>
+                                        </td>
+                                        <td class="text-end text-muted">Gs. {{ "{:,}".format(tarjeta['compras'] | int) }}</td>
+                                        <td class="text-end text-muted">Gs. {{ "{:,}".format(tarjeta['pagos'] | int) }}</td>
+                                        <td class="text-end fw-bold">
+                                            <span class="{% if tarjeta['balance'] > 0 %}text-danger{% else %}text-success{% endif %}">
+                                                Gs. {{ "{:,}".format(tarjeta['balance'] | int) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-primary rounded-circle p-1 d-inline-flex align-items-center justify-content-center table-add-op-btn"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalOperacion"
+                                                    data-banco="{{ tarjeta['banco'] }}"
+                                                    title="Registrar Operación para {{ tarjeta['banco'] }}"
+                                                    style="width: 28px; height: 28px;">
+                                                <i class="bi bi-plus-lg small"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">No hay estados de tarjetas registrados.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-gray-800"><i class="bi bi-calendar-check me-2 text-success"></i>Historial de movimientos</h5>
+                    <a href="{{ url_for('movimientos_mes', mes=fechas_referencia['fecha_actual'].strftime('%Y-%m')) }}" class="btn btn-sm btn-outline-primary px-2.5 py-1 text-uppercase font-monospace small tracking-wider">
+                        <i class="bi bi-eye-fill me-1"></i> Ver Detalles
+                    </a>
+                </div>
+                <div class="card-body px-4">
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light text-uppercase font-monospace small sticky-top">
+                                <tr>
+                                    <th>Mes / Periodo</th>
+                                    <th class="text-end">Balance Neto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if movimientos %}
+                                    {% for mes_key, suma_mes in movimientos %}
+                                    <tr>
+                                        <td class="font-monospace fw-semibold">{{ mes_key }}</td>
+                                        <td class="text-end fw-bold {% if suma_mes >= 0 %}text-danger{% else %}text-success{% endif %}">
+                                            Gs. {{ "{:,}".format(suma_mes | int) }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-3">Sin movimientos registrados este año.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detalleAgrupadorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-list-check text-info me-2"></i>
+                    Desglose: <span id="modal_agrupador_titulo" class="text-primary">Categoría</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tablaDetalleGastos">
+                        <thead class="table-light text-uppercase font-monospace small">
+                            <tr>
+                                <th class="ps-4">Fecha</th>
+                                <th>Descripción / Acreedor</th>
+                                <th>Tipo</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-end pe-4">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="container_detalle_gastos">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="loading_spinner_modal" class="text-center py-5">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando desglose...</span>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">Consultando libro de registros...</p>
+                </div>
+            </div>
+            <div class="text-end px-1 py-1 border-top bg-light-subtle">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="bi bi-wallet2 text-muted"> Total: </i>
+                    Gs. <span id="modal_agrupador_total" class="text-end pe-3 font-monospace fw-bold text-dark">Saldo</span>
+                </h5>
+            </div>
+            <div class="modal-footer bg-light border-top-0 py-2.5 px-4">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-4 rounded-pill fw-medium" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCombustible" tabindex="-1" aria-labelledby="modalCombustibleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold" id="modalCombustibleLabel">
+                    <i class="bi bi-fuel-pump me-2"></i>Nueva Recarga de Combustible
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-close="modal" aria-hidden="true"></button>
+            </div>
+            <form action="{{ url_for('nueva_recarga') }}" method="POST" novalidate>
+                <div class="modal-body p-4">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="{{ form.fecha_carga.id }}" class="form-label fw-semibold text-secondary small">Fecha de Carga</label>
+                        {{ form.fecha_carga(class="form-control", type="date") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.emblema.id }}" class="form-label fw-semibold text-secondary small">Estación de Servicio (Emblema)</label>
+                        {{ form.emblema(class="form-control", placeholder="Ej: Petrobras, Shell...") }}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label for="{{ form.odometro.id }}" class="form-label fw-semibold text-secondary small">Kilometraje Actual</label>
+                            {{ form.odometro(class="form-control", type="number", placeholder="KM") }}
+                        </div>
+                        <div class="col-6">
+                            <label for="{{ form.tarjeta.id }}" class="form-label fw-semibold text-secondary small">Tarjeta de Pago</label>
+                            {{ form.tarjeta(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-2">
+                        <div class="col-6">
+                            <label for="{{ form.precio.id }}" class="form-label fw-semibold text-secondary small">Precio por Litro</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light font-monospace small">Gs.</span>
+                                {{ form.precio(class="form-control", type="number") }}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label for="{{ form.monto.id }}" class="form-label fw-semibold text-secondary small">Monto Total Cargado</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light font-monospace small">Gs.</span>
+                                {{ form.monto(class="form-control", type="number") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light-subtle px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+                    {{ form.submit(class="btn btn-primary px-4 fw-semibold") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOperacion" tabindex="-1" aria-labelledby="modalOperacionTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light border-bottom-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalOperacionTitle">Registrar Operación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formOperacion" method="POST" action="">
+                <div class="modal-body py-4">
+                    <input type="hidden" name="id_operacion" id="op_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Descripción</label>
+                        <input type="text" name="descripcion" id="op_descripcion" class="form-control px-3" placeholder="Ej. Supermercado Stock" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Monto (Gs.)</label>
+                            <input type="number" name="monto_operacion" id="op_monto" class="form-control px-3" placeholder="0" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Fecha</label>
+                            <input type="date" name="fecha_operacion" id="op_fecha" class="form-control px-3" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-secondary">Categoría / Agrupador</label>
+                        <select name="id_tipo_movimiento" id="op_tipo" class="form-select px-3" required>
+                            <option value="" disabled selected>Selecciona una categoría...</option>
+                            {% for choice in listar_tipos() %}
+                                <option value="{{ choice[0] }}">{{ choice[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0 px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnSubmitOperacion" class="btn btn-primary px-4 fw-semibold shadow-sm">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>  
+
+<style>
+    .row-agrupador-clickable { cursor: pointer; transition: background-color 0.2s ease; }
+    .row-agrupador-clickable:hover { background-color: var(--bs-light) !important; }
+    
+    .nav-tabs .nav-link.active {
+        background-color: transparent !important;
+        border-color: transparent !important;
+    }
+    .nav-tabs .nav-link:hover:not(.active) {
+        border-color: transparent !important;
+        background-color: #f8f9fa;
+        border-radius: 4px 4px 0 0;
+    }
+    
+    /* Oculta las barras de scroll horribles en Chrome, Safari, Opera, Edge y Firefox */
+    .scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+    }
+    .scrollbar-hidden {
+        -ms-overflow-style: none;  /* IE y Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    
+    /* Pequeño ajuste estético para que los botones inactivos combinen con tu UI */
+    .nav-pills .nav-link:not(.active):hover {
+        background-color: #e9ecef !important;
+        color: #343a40 !important;
+    }
+</style>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Captures click events on row action buttons inside the summary table
+        $('.table-add-op-btn').click(function() {
+            // Change modal labels to reflect standard creation mode
+            $('#modalOperacionTitle').text('Registrar Operación');
+            $('#btnSubmitOperacion').removeClass('btn-warning').addClass('btn-primary').text('Confirmar');
+            
+            // Extract the bank key parameter from this row element's dataset
+            const targetBanco = $(this).data('banco');
+            
+            // Dynamically point form submission action path to the explicit route handler
+            $('#formOperacion').attr('action', `/nueva_operacion/${encodeURIComponent(targetBanco)}`);
+            
+            // Reset old input selections and clear text inputs cleanly
+            $('#op_id').val('');
+            $('#formOperacion')[0].reset();
+            
+            // Default the HTML datepicker input field to current calendar date
+            $('#op_fecha').val(new Date().toISOString().substring(0, 10));
+
+            // Locate and track active pane hash to pass state context during submission redirection
+            const currentActivePane = $('.tab-content .tab-pane.show.active').attr('id');
+            if (currentActivePane) {
+                $('#formOperacion').find('.active-pane-tracker').val(currentActivePane);
+            }
+        });
+    });
+
+    $(document).on('click', '.row-agrupador-clickable', function() {
+        const row = $(this);
+        const agrupadorId = row.data('agrupador-id');
+        const agrupadorNombre = row.data('agrupador-nombre');
+        const anno = row.data('anno');
+        const mes = row.data('mes');
+        const totalAgrupador = row.data('agrupador-total');
+        const totalFormateado = new Intl.NumberFormat('de-DE').format(Math.round(totalAgrupador));
+
+        console.log(`Clicked Agrupador ID: ${agrupadorId}, Nombre: ${agrupadorNombre}, Año: ${anno}, Mes: ${mes}, Total: ${totalFormateado}`);
+
+        // 1. Configurar título inicial y mostrar Modal con el Loader activo
+        $('#modal_agrupador_titulo').text(agrupadorNombre);
+        $('#container_detalle_gastos').empty();
+        $('#tablaDetalleGastos').hide();
+        $('#loading_spinner_modal').show();
+        $('#detalleAgrupadorModal').modal('show');
+        $('#modal_agrupador_total').text(totalFormateado);
+
+
+        // 2. Consumo de la API interna
+        $.ajax({
+            url: `/api/gastos/desglose-agrupador`,
+            method: 'GET',
+            data: {
+                id_agrupador: agrupadorId,
+                anno: anno,
+                mes: mes
+            },
+            dataType: 'json',
+            success: function(response) {
+                $('#loading_spinner_modal').hide();
+
+                if (response.success && response.data.length > 0) {
+                    let htmlRows = '';
+                    
+                    response.data.forEach(gasto => {
+                        // Formatear el monto a formato Guaraní (Gs. XX.XXX.XXX)
+                        const montoFormateado = new Intl.NumberFormat('de-DE').format(Math.round(gasto.monto));
+
+                        // Formatear Pills de Estado
+                        const statusClass = gasto.pagado ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger';
+                        const statusText = gasto.pagado ? 'Pagado' : 'Pendiente';
+                        
+                        // Formatear Tipo (Crédito vs Gasto Convencional)
+                        const tipoBadge = gasto.operacion 
+                            ? '<span class="badge bg-warning-subtle text-warning-emphasis small"><i class="bi bi-credit-card-2-front-fill me-1"></i>Crédito</span>'
+                            : '<span class="badge bg-secondary-subtle text-secondary-emphasis small"><i class="bi bi-cash me-1"></i>Deuda</span>';
+
+                        htmlRows += `
+                            <tr>
+                                <td class="ps-4 font-monospace text-secondary small">${gasto.fecha_pagar}</td>
+                                <td><span class="fw-medium text-dark">${gasto.descripcion}</span></td>
+                                <td>${tipoBadge}</td>
+                                <td class="text-center"><span class="badge ${statusClass} rounded-pill px-2.5 py-1 small fw-semibold">${statusText}</span></td>
+                                <td class="text-end pe-4 font-monospace fw-bold text-dark">Gs. ${montoFormateado}</td>
+                            </tr>
+                        `;
+                    });
+
+                    $('#container_detalle_gastos').html(htmlRows);
+                    $('#tablaDetalleGastos').fadeIn(200);
+                } else {
+                    $('#container_detalle_gastos').html(`
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No se encontraron transacciones individuales bajo este concepto.</td>
+                        </tr>
+                    `);
+                    $('#tablaDetalleGastos').fadeIn(200);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loading_spinner_modal').hide();
+                /*console.error("Fallo al traer desglose:", error);*/
+                $('#container_detalle_gastos').html(`
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error de red al intentar recuperar los datos de auditoría.</td>
+                    </tr>
+                `);
+                $('#tablaDetalleGastos').fadeIn(200);
+            }
+        });
+    });
+</script>
+{% endblock %}

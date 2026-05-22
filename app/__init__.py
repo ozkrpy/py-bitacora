@@ -11,6 +11,15 @@ migrate = Migrate(app, db, render_as_batch=True)
 login = LoginManager(app)
 login.login_view = 'login'
 
+from app.utilitarios import listar_tipos, listar_tarjetas
+
+@app.context_processor
+def inject_utility_functions():
+    return dict(
+        listar_tipos=listar_tipos,
+        listar_tarjetas=listar_tarjetas
+    )
+
 from app import routes, models
 
 #from routes import *   

@@ -1,0 +1,409 @@
+{% extends "new_base.html" %}
+
+{% block styles %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-2">
+    
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex justify-content-between align-items-center bg-white rounded-3">
+            <a href="{{ url_for('movimientos_mes', mes=fechas.mes_anterior.strftime('%Y-%m')) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 font-monospace text-uppercase">
+                <i class="bi bi-chevron-left"></i> {{ fechas.mes_anterior.strftime('%b') }}
+            </a>
+            <h2 class="h4 mb-0 fw-bold text-dark text-uppercase tracking-wide">
+                <i class="bi bi-calendar3 me-2 text-primary"></i>{{ fechas.mes_actual.strftime('%B %Y') }}
+            </h2>
+            <a href="{{ url_for('movimientos_mes', mes=fechas.mes_siguiente.strftime('%Y-%m')) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 font-monospace text-uppercase">
+                {{ fechas.mes_siguiente.strftime('%b') }} <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+        <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-white"></i>Resumen Consolidado de Estados</h5>
+            <span class="badge font-monospace px-2.5 py-1.5 fs-7">Mes Comercial</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap">
+                    <thead class="table-light font-monospace text-uppercase small">
+                        <tr>
+                            <th class="ps-4">Tarjeta / Banco</th>
+                            <th class="text-end">Gastos (Mes)</th>
+                            <th class="text-end">Pagos</th>
+                            <th class="text-end">Descuentos</th>
+                            <th class="text-end">Saldo Período</th>
+                            <th class="text-end pe-4">Balance Histórico</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarjeta in balances | sort(attribute='banco') %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-dark">{{ tarjeta.banco }}</td>
+                            <td class="text-end text-secondary">Gs. {{ "{:,}".format(tarjeta.compras_mes | int) }}</td>
+                            <td class="text-end text-muted">Gs. {{ "{:,}".format(tarjeta.pagos_mes | int) }}</td>
+                            <td class="text-end text-muted">Gs. {{ "{:,}".format(tarjeta.descuentos_mes | int) }}</td>
+                            <td class="text-end fw-bold {% if tarjeta.balance_mes > 0 %}text-danger{% else %}text-green{% endif %}">Gs. {{ "{:,}".format(tarjeta.balance_mes | int) }}</td>
+                            <td class="text-end fw-semibold pe-4 {% if tarjeta.balance > 0 %}text-danger{% else %}text-green{% endif %}">
+                                Gs. {{ "{:,}".format(tarjeta.balance | int) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light border-top fw-bold">
+                        <tr>
+                            <td class="ps-4 text-dark text-uppercase">Totales de Control:</td>
+                            <td class="text-end">Gs. {{ "{:,}".format(balances | sum(attribute='compras_mes') | int) }}</td>
+                            <td class="text-end">Gs. {{ "{:,}".format(balances | sum(attribute='pagos_mes') | int) }}</td>
+                            <td class="text-end">Gs. {{ "{:,}".format(balances | sum(attribute='descuentos_mes') | int) }}</td>
+                            <td class="text-end">Gs. {{ "{:,}".format(balances | sum(attribute='balance_mes') | int) }}</td>
+                            <td class="text-end pe-4 text-dark">Gs. {{ "{:,}".format(balances | sum(attribute='balance') | int) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                
+                <div class="card-header bg-white pt-3 px-4 border-0">
+                    <ul class="nav nav-tabs card-header-tabs border-bottom-0" id="cardTabs" role="tablist">
+                        {% for banco, movimientos in operaciones_tj | groupby('banco') %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if loop.first %}active{% endif %} px-4" 
+                                    id="tab-{{ loop.index }}" 
+                                    data-bs-toggle="tab" 
+                                    data-bs-target="#panel-{{ loop.index }}" 
+                                    type="button" 
+                                    role="tab" 
+                                    aria-controls="panel-{{ loop.index }}" 
+                                    aria-selected="{{ 'true' if loop.first else 'false' }}">
+                                <i class="bi bi-credit-card me-2"></i>{{ banco }}
+                                <span class="badge bg-secondary-subtle text-secondary ms-2 small rounded-pill">{{ movimientos|length }}</span>
+                            </button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="card-body p-4 bg-white rounded-bottom-3">
+                    <div class="tab-content" id="cardTabsContent">
+                        {% for banco, movimientos in operaciones_tj | groupby('banco') %}
+                        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="panel-{{ loop.index }}" role="tabpanel" aria-labelledby="tab-{{ loop.index }}">
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-muted text-uppercase font-monospace small mb-0">Extracto Operativo Detallado</h6>
+                                
+                                <button type="button" 
+                                        class="btn btn-sm btn-success px-3 d-flex align-items-center gap-1 shadow-sm"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#modalOperacion"
+                                        data-banco="{{ banco }}">
+                                    <i class="bi bi-plus-circle"></i> Registrar Operación
+                                </button>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light font-monospace text-uppercase small">
+                                        <tr>
+                                            <th class="text-center" style="width: 80px;">Día</th>
+                                            <th>Descripción / Glosa</th>
+                                            <th style="width: 150px;">Categoría</th>
+                                            <th class="text-end" style="width: 180px;">Monto Operación</th>
+                                            <th class="text-center" style="width: 120px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for movimiento in movimientos %}
+                                        <tr>
+                                            <td class="text-center"><span class="badge bg-light text-dark border font-monospace fs-6 px-2.5">{{ movimiento.fecha_operacion.strftime('%d') }}</span></td>
+                                            <td class="fw-medium text-dark">{{ movimiento.descripcion }}</td>
+                                            <td>
+                                                <span class="badge rounded-pill px-2.5 py-1 {% if movimiento.id_tipo_movimiento in [10, 18] %}bg-success-subtle text-success-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}">    
+                                                    {{ movimiento.tipo_movimiento }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end fw-bold font-monospace text-dark">
+                                                Gs. {{ "{:,}".format(movimiento.monto_operacion | int) }}
+                                            </td>
+                                            <td class="text-center align-middle">
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-link p-0 text-primary edit-operation-btn"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modalOperacion"
+                                                            data-id="{{ movimiento.id_operacion }}"
+                                                            data-descripcion="{{ movimiento.descripcion }}"
+                                                            data-monto="{{ movimiento.monto_operacion }}"
+                                                            data-fecha="{{ movimiento.fecha_operacion.strftime('%Y-%m-%d') }}"
+                                                            data-tipo="{{ movimiento.id_tipo_movimiento }}">
+                                                        <i class="bi bi-pencil-square fs-5"></i>
+                                                    </button>
+
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-link p-0 text-danger delete-operation-btn"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modalDeleteOperacion"
+                                                            data-id="{{ movimiento.id_operacion }}"
+                                                            data-descripcion="{{ movimiento.descripcion }}">
+                                                        <i class="bi bi-trash3 fs-5"></i>
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-link p-0 text-success discount-operation-btn"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modalDescuento"
+                                                            data-id="{{ movimiento.id_operacion }}"
+                                                            data-descripcion="{{ movimiento.descripcion }}"
+                                                            data-monto="{{ movimiento.monto_operacion }}"
+                                                            data-fecha="{{ movimiento.fecha_operacion.strftime('%Y-%m-%d') }}"
+                                                            data-tipo="{{ movimiento.id_tipo_movimiento }}"
+                                                            data-tarjeta="{{ movimiento.id_tarjeta }}"
+                                                            title="Aplicar Descuento">
+                                                        <i class="bi bi-gift fs-5"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOperacion" tabindex="-1" aria-labelledby="modalOperacionTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light border-bottom-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalOperacionTitle">Registrar Operación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formOperacion" method="POST" action="">
+                <div class="modal-body py-4">
+                    <input type="hidden" name="id_operacion" id="op_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Descripción</label>
+                        <input type="text" name="descripcion" id="op_descripcion" class="form-control px-3" placeholder="Ej. Supermercado Stock" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Monto (Gs.)</label>
+                            <input type="number" name="monto_operacion" id="op_monto" class="form-control px-3" placeholder="0" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Fecha</label>
+                            <input type="date" name="fecha_operacion" id="op_fecha" class="form-control px-3" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-secondary">Categoría / Agrupador</label>
+                        <select name="id_tipo_movimiento" id="op_tipo" class="form-select px-3" required>
+                            <option value="" disabled selected>Selecciona una categoría...</option>
+                            {% for choice in listar_tipos() %}
+                                <option value="{{ choice[0] }}">{{ choice[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0 px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnSubmitOperacion" class="btn btn-primary px-4 fw-semibold shadow-sm">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDeleteOperacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <div class="text-danger mb-3">
+                    <i class="bi bi-exclamation-triangle-fill display-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark">¿Eliminar Operación?</h5>
+                <p class="text-muted small mb-4">Esta acción borrará definitivamente el registro: <br><strong id="delete_target_name" class="text-dark"></strong></p>
+                
+                <form id="formDeleteOperacion" method="POST" action="">
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-light px-3 w-50" data-bs-dismiss="modal">No, mantener</button>
+                        <button type="submit" class="btn btn-danger px-3 w-50 fw-semibold">Sí, eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDescuento" tabindex="-1" aria-labelledby="modalDescuentoTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <form id="formDescuento" method="POST" action="">
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold" id="modalDescuentoTitle">Aplicar Descuento Especial</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="bg-blue-subtle text-blue-emphasis p-3 rounded-3 mb-3 small border-blue-accent">
+                        <div class="row">
+                            <div class="col-7"><strong>Concepto Original:</strong> <br><span id="desc_op_name"></span></div>
+                            <div class="col-5 text-end"><strong>Monto Base:</strong> <br><span id="desc_op_monto_text" class="fw-bold"></span></div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="discount_base_monto" name="base_monto">
+                    <input type="hidden" id="discount_base_fecha" name="base_fecha">
+                    <input type="hidden" id="discount_base_tipo" name="base_tipo">
+                    <input type="hidden" id="discount_base_descripcion" name="base_descripcion">
+                    <input type="hidden" id="discount_base_tarjeta" name="id_tarjeta"> <div class="mb-2">
+                        <label for="porcentaje_descuento" class="form-label small fw-semibold text-secondary">Porcentaje de Descuento (%)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-secondary border-end-0"><i class="bi bi-percent"></i></span>
+                            <input type="number" class="form-control border-start-0 px-2" id="porcentaje_descuento" name="porcentaje" min="1" max="100" placeholder="Ej. 10" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0 px-4">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success px-4 fw-semibold shadow-sm">Aplicar Descuento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Inside your existing script block, update the Create button click binder:
+$('[data-bs-target="#modalOperacion"]').not('.edit-operation-btn').click(function() {
+    $('#modalOperacionTitle').text('Registrar Operación');
+    $('#btnSubmitOperacion').removeClass('btn-warning').addClass('btn-primary').text('Confirmar');
+    
+    // Extract the active bank text string from the focused tab layout component element
+    const activeBanco = $('#cardTabs .nav-link.active').text().trim();
+    
+    // Dynamic URL mapping configuration
+    $('#formOperacion').attr('action', `/nueva_operacion/${encodeURIComponent(activeBanco)}`);
+    $('#op_id').val('');
+    $('#formOperacion')[0].reset();
+    $('#op_fecha').val(new Date().toISOString().substring(0, 10));
+});
+
+$(document).ready(function() {
+    // Captures click events on any "Registrar Operación" trigger button
+    $('[data-bs-target="#modalOperacion"]').not('.edit-operation-btn').click(function() {
+        // Set modal Title to creation mode
+        $('#modalOperacionTitle').text('Registrar Operación');
+        $('#btnSubmitOperacion').removeClass('btn-warning').addClass('btn-primary').text('Confirmar');
+        
+        // Extract the explicit bank name attached directly to the clicked button dataset
+        const targetBanco = $(this).data('banco');
+        
+        // Dynamically assign the form's destination path pointing to the active card context
+        $('#formOperacion').attr('action', `/nueva_operacion/${encodeURIComponent(targetBanco)}`);
+        
+        // Clear out any old values lingering in the input elements
+        $('#op_id').val('');
+        $('#formOperacion')[0].reset();
+        
+        // Default the datepicker field to today's date placeholder
+        $('#op_fecha').val(new Date().toISOString().substring(0, 10));
+    });
+});
+
+$(document).ready(function() {
+    
+    // --- 1. HANDLE "REGISTRAR OPERACIÓN" (NEW STATE RESET) ---
+    /*$('[data-bs-target="#modalOperacion"]').not('.edit-operation-btn').click(function() {
+        $('#modalOperacionTitle').text('Registrar Operación');
+        $('#btnSubmitOperacion').removeClass('btn-warning').addClass('btn-primary').text('Confirmar');
+        
+        // Reset form actions & inputs completely
+        $('#formOperacion').attr('action', "{{ url_for('nueva_operacion', tarjeta=banco) }}");
+        $('#op_id').val('');
+        $('#formOperacion')[0].reset();
+        
+        // Auto-populate today's default current date format ISO standard
+        $('#op_fecha').val(new Date().toISOString().substring(0, 10));
+    });*/
+
+    // --- 2. HANDLE "EDIT OPERATION" POPULATOR MAPPING ---
+    $('.edit-operation-btn').click(function() {
+        const id = $(this).data('id');
+        const desc = $(this).data('descripcion');
+        const monto = $(this).data('monto');
+        const fecha = $(this).data('fecha');
+        const tipo = $(this).data('tipo');
+
+        // Dynamically alter modal presentation context
+        $('#modalOperacionTitle').text('Modificar Operación');
+        $('#btnSubmitOperacion').removeClass('btn-primary').addClass('btn-warning text-dark').text('Guardar Cambios');
+        
+        // Redirect target routing destination over to edit endpoints natively
+        $('#formOperacion').attr('action', `/modificar_operacion/${id}`);
+        
+        // Populate inputs data value variables
+        $('#op_id').val(id);
+        $('#op_descripcion').val(desc);
+        $('#op_monto').val(monto);
+        $('#op_fecha').val(fecha);
+        $('#op_tipo').val(tipo);
+    });
+
+    // --- 3. HANDLE "DELETE OPERATION" CONFIRMATION ROUTING ---
+    $('.delete-operation-btn').click(function() {
+        const id = $(this).data('id');
+        const desc = $(this).data('descripcion');
+
+        // Set contextual target descriptions indicator text 
+        $('#delete_target_name').text(desc);
+        
+        // Rewrite application form path dynamically straight to the database target delete router logic
+        $('#formDeleteOperacion').attr('action', `/borrar_operacion/${id}`);
+    });
+});
+$('.discount-operation-btn').click(function() {
+    const opId = $(this).data('id');
+    const descripcion = $(this).data('descripcion');
+    const monto = parseFloat($(this).data('monto'));
+    const fecha = $(this).data('fecha');
+    const tipo = $(this).data('tipo');
+    const tarjeta = $(this).data('tarjeta'); // Grabs the assigned card identification directly
+
+    // Display localized information summaries
+    $('#desc_op_name').text(descripcion);
+    $('#desc_op_monto_text').text('Gs. ' + monto.toLocaleString('es-PY'));
+
+    // Map fields straight into form parameters
+    $('#discount_base_monto').val(monto);
+    $('#discount_base_fecha').val(fecha);
+    $('#discount_base_tipo').val(tipo);
+    $('#discount_base_descripcion').val(descripcion);
+    $('#discount_base_tarjeta').val(tarjeta); // Maps to the hidden field input code row
+
+    // Direct configuration point routing destination path map
+    $('#formDescuento').attr('action', `/aplicar_descuento/${opId}`);
+    
+    // Reset percentages inputs viewport
+    $('#porcentaje_descuento').val('');
+});
+</script>
+{% endblock %}

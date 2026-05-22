@@ -133,7 +133,14 @@ def precarga_deudas(mes: str):
             dbmodel.session.commit()
         if deuda.descripcion=='DESCUENTO IPS' or deuda.descripcion=='SERVICIOS TELEFONIA' or deuda.descripcion=='INTERNET & TV' or deuda.descripcion=='REFERENCIA' or deuda.descripcion=='S24': 
             descontado=True
-        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion+"("+str(deuda.cuotas_pagadas)+"/"+str(deuda.cuotas)+")", monto=deuda.monto, operacion=False, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
+            operacion = False
+        if deuda.descripcion=='REFERENCIA':
+            operacion = True
+        
+        g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion+"("+str(deuda.cuotas_pagadas)+"/"+str(deuda.cuotas)+")", monto=deuda.monto, operacion=operacion, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
+        
+        print(g)
+
         dbmodel.session.add(g)
         dbmodel.session.commit()
     return True
@@ -180,7 +187,8 @@ def calcular_disponibilidad(mes: str):
 def movimientos_agrupados(mes):
     operaciones=[]
     # movimientos = dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all()
-    for movimiento in dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all():
+    # for movimiento in dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion).all():
+    for movimiento in dbmodel.session.query(Movimientos.id.label('id_operacion'), Movimientos.fecha_operacion.label('fecha_operacion'), Movimientos.descripcion.label('descripcion'), Movimientos.monto_operacion.label('monto_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('tipo_movimiento'), Movimientos.id_tarjeta.label('id_tarjeta'), Tarjetas.banco.label('banco')).join(Tarjetas).join(TiposMovimiento).filter(Movimientos.id_tarjeta==Tarjetas.id).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).filter(func.strftime("%Y-%m", Movimientos.fecha_operacion)==mes).order_by(Movimientos.id_tarjeta).order_by(Movimientos.fecha_operacion.desc(), Movimientos.id.desc()).all():
         operaciones.append({'id_operacion':movimiento.id_operacion, 'fecha_operacion': movimiento.fecha_operacion, 'descripcion': movimiento.descripcion, 'monto_operacion': movimiento.monto_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'tipo_movimiento': movimiento.tipo_movimiento, 'id_tarjeta': movimiento.id_tarjeta, 'banco': movimiento.banco})
     return operaciones
 
