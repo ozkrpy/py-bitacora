@@ -1,0 +1,270 @@
+{% extends "new_base.html" %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Bitácora</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Combustible</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0 fw-bold text-dark"><i class="bi bi-fuel-pump-fill me-2 text-primary"></i>Historial Anual de Combustible</h1>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom py-3">
+            <h5 class="card-title mb-0 fw-bold text-secondary">Resumen de Cargas por Año</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase fs-7 fw-bold text-muted">
+                    <tr>
+                        <th class="ps-4 py-3">Año</th>
+                        <th class="text-end py-3">Inversión Total</th>
+                        <th class="text-end py-3">Prom. Lts. por Recarga</th>
+                        <th class="text-end py-3">Distancia por Tanque</th>
+                        <th class="text-end py-3">Consumo / 100Km</th>
+                        <th class="text-end py-3">Recargas</th>
+                        <th class="text-end pe-4 py-3">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if items %}
+                        {% for item in items %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark fs-5">{{ item.anno }}</td>
+                            <td class="text-end fw-semibold text-success">Gs. {{ "{:,.0f}".format(item.total_inversion) }}</td>
+                            <td class="text-end text-secondary">{{ "{:,.1f}".format(item.promedio_litros_recarga) }} Lts</td>
+                            <td class="text-end text-secondary">{{ "{:,.0f}".format(item.distancia_por_tanque) }} Km</td>
+                            <td class="text-end">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 fs-7">
+                                    {{ "{:,.1f}".format(item.consumo_100_km) }} L/100Km
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge bg-secondary text-white border border-light-subtle rounded-pill px-3 py-2 fw-semibold">
+                                    <i class="bi bi-tag-fill me-1 text-white"></i>{{ item.total_recargas }} cargas
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 transition-all shadow-none collapsed btn-trigger-collapse" 
+                                        type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse-fuel-{{ item.anno }}" 
+                                        aria-expanded="false" 
+                                        aria-controls="collapse-fuel-{{ item.anno }}">
+                                    <span class="btn-text-show">Ver meses <i class="bi bi-chevron-down ms-1"></i></span>
+                                    <span class="btn-text-hide d-none">Ocultar <i class="bi bi-chevron-up ms-1"></i></span>
+                                </button>
+                            </td>
+                        </tr>
+
+<tr class="border-0">
+    <td colspan="7" class="p-0 border-0">
+        <div class="collapse bg-light-subtle border-top border-bottom" id="collapse-fuel-{{ item.anno }}">
+            <div class="p-4">
+                
+                {% if item.meses %}
+                    {% for mes in item.meses %}
+                        <div class="mb-4 last-mb-0">
+                            <h6 class="fw-bold text-secondary mb-3 d-flex align-items-center">
+                                <i class="bi bi-calendar3 me-2 text-primary"></i>{{ mes.nombre_mes }}
+                            </h6>
+                            
+                            <div class="row g-3">
+                                {% for recarga in mes.recargas %}
+                                    <div class="col-xl-4 col-md-6">
+                                        <div class="card subcard-fuel h-100 border border-light-subtle shadow-xs rounded-3 bg-white p-3 transition-all">
+                                            
+                                            <div class="d-flex justify-content-between align-items-start mb-4">
+                                                <div>
+                                                    <span class="text-dark fw-bold d-block mb-0 fs-5">
+                                                        <i class="bi bi-geo-alt-fill text-danger me-1 small"></i>{{ recarga.emblema }}
+                                                        
+                                                    </span>
+                                                    <small class="text-muted text-uppercase fs-6 fw-semibold">
+                                                        {{ recarga.fecha.strftime('%d/%m/%Y') if recarga.fecha else 'S/F' }} 
+                                                    </small>                                                    
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="fs-5 fw-bold text-success d-block mb-0">
+                                                        Gs. {{ "{:,.0f}".format(recarga.monto) }}
+                                                    </span>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-light text-primary border border-light-subtle rounded-pill py-0 px-1 fs-6 fw-semibold btn-edit-reload transition-all"
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#modalEditCombustible"
+                                                            data-id="{{ recarga.id }}"
+                                                            data-fecha="{{ recarga.fecha.strftime('%Y-%m-%d') if recarga.fecha else '' }}"
+                                                            data-odometro="{{ recarga.odometro }}"
+                                                            data-emblema="{{ recarga.emblema }}"
+                                                            data-precio="{{ recarga.precio }}"
+                                                            data-monto="{{ recarga.monto }}">
+                                                        <i class="bi bi-pencil-square fs-7"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row text-center g-1 fs-6">
+                                                <small class="text-muted text-uppercase fs-8 fw-semibold">Odometro: {{ "{:,.0f}".format(recarga.odometro) }} Km.</small>
+                                            </div>
+                                            <hr class="my-2 opacity-25 text-secondary">
+                                            
+                                            <div class="row text-center g-1 fs-7">
+                                                <div class="col-3 border-end border-light-subtle">
+                                                    <span class="text-muted d-block small">Precio</span>
+                                                    <strong class="text-secondary">{{ "{:,.0f}".format(recarga.precio) }}</strong>
+                                                </div>
+                                                <div class="col-3 border-end border-light-subtle">
+                                                    <span class="text-muted d-block small">Litros</span>
+                                                    <strong class="text-dark">{{ "{:,.1f}".format(recarga.litros) }} L</strong>
+                                                </div>
+                                                <div class="col-3 border-end border-light-subtle">
+                                                    <span class="text-muted d-block small">Recorrido</span>
+                                                    <strong class="text-primary">{{ "{:,.2f}".format(recarga.recorrido_100km) }} L/100K</strong>
+                                                </div>
+                                                <div class="col-3">
+                                                    <span class="text-muted d-block small">Duración</span>
+                                                    <strong class="text-secondary">{{ recarga.duracion_dias }} días</strong>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center my-2 small">No hay desglose mensual disponible para este año.</p>
+                {% endif %}
+
+            </div>
+        </div>
+    </td>
+</tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="bi bi-exclamation-circle fs-2 d-block mb-2 text-secondary"></i>
+                                No se encontraron registros de recargas de combustible en la base de datos.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEditCombustible" tabindex="-1" aria-labelledby="modalEditCombustibleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-light border-bottom-0 rounded-top-4">
+                <h5 class="modal-title fw-bold text-dark" id="modalEditCombustibleLabel">
+                    <i class="bi bi-fuel-pump text-primary me-2"></i>Editar Recarga
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditCombustible" method="POST" action="">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold">Fecha de Carga</label>
+                        <input type="date" class="form-control form-control-lg bg-light-subtle" id="edit_fecha_carga" name="fecha_carga" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold">Odómetro (Km)</label>
+                        <input type="number" class="form-control form-control-lg bg-light-subtle" id="edit_odometro" name="odometro" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold">Estación / Emblema</label>
+                        <input type="text" class="form-control form-control-lg bg-light-subtle" id="edit_emblema" name="emblema" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-secondary small fw-bold">Precio por Litro</label>
+                            <input type="number" class="form-control form-control-lg bg-light-subtle" id="edit_precio" name="precio" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-secondary small fw-bold">Monto Total</label>
+                            <input type="number" class="form-control form-control-lg bg-light-subtle" id="edit_monto_carga" name="monto_carga" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0 rounded-bottom-4">
+                    <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Efectos de transición Soft-UI y Micro-Estilos */
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
+    .fs-7 {
+        font-size: 0.75rem;
+    }
+    .shadow-xs {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .last-mb-0:last-child {
+        margin-bottom: 0 !important;
+    }
+    
+    /* Efecto Hover sutil sobre las sub-tarjetas de recarga */
+    .subcard-fuel:hover {
+        transform: translateY(-2px);
+        border-color: var(--bs-primary-border-subtle) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    /* Lógica de cambio de texto interactivo del botón */
+    .btn-trigger-collapse:not(.collapsed) .btn-text-show {
+        display: none !important;
+    }
+    .btn-trigger-collapse:not(.collapsed) .btn-text-hide {
+        display: inline-block !important;
+    }
+    .btn-trigger-collapse.collapsed .btn-text-show {
+        display: inline-block !important;
+    }
+    .btn-trigger-collapse.collapsed .btn-text-hide {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).on('click', '.btn-edit-reload', function() {
+        const btn = $(this);
+        
+        // Extraer variables del botón
+        const id = btn.data('id');
+        const fecha = btn.data('fecha');
+        const odometro = btn.data('odometro');
+        const emblema = btn.data('emblema');
+        const precio = btn.data('precio');
+        const monto = btn.data('monto');
+        
+        // Rellenar el Modal
+        $('#edit_fecha_carga').val(fecha);
+        $('#edit_odometro').val(odometro);
+        $('#edit_emblema').val(emblema);
+        $('#edit_precio').val(precio);
+        $('#edit_monto_carga').val(monto);
+
+        console.log(`Editando recarga ID ${id}: Fecha ${fecha}, Odómetro ${odometro}, Emblema ${emblema}, Precio ${precio}, Monto ${monto}`);
+        
+        // Apuntar el formulario a la API/Ruta correspondiente para actualizar
+        $('#formEditCombustible').attr('action', `/api/combustible/modificar/${id}`);
+    });
+</script>
+{% endblock %}

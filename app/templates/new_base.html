@@ -99,6 +99,12 @@
         .text-green {
             color: #188051 !important;
         }
+        .modal-backdrop {
+            z-index: 1040 !important; /* Por encima del menú lateral principal */
+        }
+        .modal {
+            z-index: 1050 !important; /* Por encima del fondo oscuro */
+        }
         
     </style>
     
@@ -106,7 +112,7 @@
 </head>
 <body class="d-flex flex-column h-100">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary border-opacity-25 sticky-top shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary border-opacity-25 sticky-top shadow-sm" style="z-index: 1030;">
         <div class="container-fluid px-4">
             
             <a class="navbar-brand d-flex align-items-center fw-bold text-white fs-5" href="{{ url_for('index') }}">
@@ -133,11 +139,17 @@
                             <i class="bi bi-cash-stack me-1"></i> Operaciones
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark border-secondary shadow" aria-labelledby="gastosDropdown">
-                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="#"><i class="bi bi-plus-circle me-2"></i>Registrar Gasto</a></li>
-                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="#"><i class="bi bi-fuel-pump me-2"></i>Carga Combustible</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('historico_gastos_fijos') }}"><i class="bi bi-pie-chart-fill me-2"></i>Cuentas</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('movimientos_mes') }}"><i class="bi bi-eye me-2"></i>Tarjetas de Credito</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('reporte_anual_combustible') }}"><i class="bi bi-fuel-pump me-2"></i>Recargas de Combustible</a></li>
                             <li><hr class="dropdown-divider border-secondary opacity-25"></li>
-                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="#"><i class="bi bi-credit-card me-2"></i>Tarjetas de Crédito</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('parametrico') }}"><i class="bi bi-gear me-2"></i>Ajustes</a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item me-1">
+                        <a class="nav-link {% if request.endpoint == 'buscar_movimientos' %}active text-success fw-medium{% endif %}" href="{{ url_for('buscar_movimientos') }}">
+                            <i class="bi bi-search me-1"></i> Buscador
+                        </a>
                     </li>
                 </ul>
                 {% endif %}

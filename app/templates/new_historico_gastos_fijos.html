@@ -1,5 +1,16 @@
 {% extends "new_base.html" %}
 
+{% block styles %}
+<style>
+    .btn[data-bs-toggle="collapse"] .transition-icon {
+    transition: transform 0.2s ease-in-out;
+    }
+    .btn[data-bs-toggle="collapse"].collapsed .transition-icon {
+        transform: rotate(-90deg); /* Apunta a la izquierda/abajo si está cerrado */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     
@@ -15,7 +26,7 @@
 
     <div class="row">
         
-        <div class="col-md-3 mb-4">
+        <!-- <div class="col-md-3 mb-4">
             <div class="card shadow-sm border-0 bg-white rounded-3">
                 <form action="{{ url_for('api_generar_siguiente_mes') }}" method="POST" class="mb-3">
                     <button type="submit" class="btn btn-success w-100 rounded-3 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
@@ -49,7 +60,58 @@
 
                 </div>
             </div>
+        </div> -->
+
+        <div class="col-md-3 mb-4">
+    <div class="card shadow-sm border-0 bg-white rounded-3">
+        <form action="{{ url_for('api_generar_siguiente_mes') }}" method="POST" class="mb-3">
+            <button type="submit" class="btn btn-success w-100 rounded-3 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                <i class="bi bi-calendar-plus fs-5"></i>
+                Generar Siguiente Mes
+            </button>
+        </form>
+        <div class="card-header bg-light fw-bold border-bottom-0">Historial Disponible</div>
+        <div class="card-body p-2">
+            
+            {% for anno, meses in menu_cronologico.items() %}
+                {% set tiene_mes_activo = (anno == anno_activo) %}
+                <div class="mb-2">
+                    <button class="btn btn-light w-100 text-start d-flex justify-content-between align-items-center py-2 px-3 fw-bold border border-light-subtle rounded-3 {% if not tiene_mes_activo %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#collapse-year-{{ anno }}" 
+                            aria-expanded="{% if tiene_mes_activo %}true{% else %}false{% endif %}" 
+                            aria-controls="collapse-year-{{ anno }}">
+                        <span>
+                            <i class="bi bi-folder2-open me-2 text-secondary"></i>
+                            Año {{ anno }}
+                        </span>
+                        <i class="bi bi-chevron-down transition-icon small opacity-75"></i>
+                    </button>
+
+                    <div class="collapse {% if tiene_mes_activo %}show{% endif %}" id="collapse-year-{{ anno }}">
+                        <div class="list-group list-group-flush ps-2 pt-2">
+                            {% for m_num in meses %}
+                                {% set es_activo = (anno == anno_activo and m_num == mes_activo) %}
+                                <a href="{{ url_for('historico_gastos_fijos', anno=anno, mes=m_num) }}" 
+                                   class="list-group-item list-group-item-action py-2 small border-0 d-flex justify-content-between align-items-center {% if es_activo %}active fw-bold rounded-3{% endif %}">
+                                    <span class="{% if not es_activo %}text-dark{% endif %}">
+                                        <i class="bi bi-calendar3 me-1 {% if es_activo %}text-white{% else %}text-secondary{% endif %}"></i> 
+                                        {{ meses_nombres[m_num] }}
+                                    </span>
+                                    <i class="bi bi-chevron-right small {% if es_activo %}text-white opacity-75{% else %}opacity-50{% endif %}"></i>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-muted text-center p-3 small">No hay registros históricos aún.</p>
+            {% endfor %}
+
         </div>
+    </div>
+</div>
 
         <div class="col-md-9">
             <div class="card shadow-sm border-0 bg-white rounded-3">
@@ -121,7 +183,9 @@
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark target-desc">{{ gasto.descripcion }}</div>
-                                        <small class="text-muted">{{ gasto.agrupador_gastos.agrupador if gasto.agrupador_gastos else 'Sin grupo' }}</small>
+                                        <small class="text-muted target-agrupador-raw" data-agrupador-id="{{ gasto.id_agrupador_gastos }}">
+                                            {{ gasto.agrupador_gastos.agrupador if gasto.agrupador_gastos else 'Sin grupo' }}
+                                        </small>
                                     </td>
                                     <td class="text-end fw-bold font-monospace text-dark target-monto-raw" data-monto="{{ gasto.monto }}">
                                         Gs. {{ "{:,.0f}".format(gasto.monto).replace(",", ".") }}
@@ -192,6 +256,16 @@
                     <div class="mb-3">
                         <label for="edit_descripcion" class="form-label small fw-bold text-secondary">Descripción / Acreedor</label>
                         <input type="text" class="form-control" id="edit_descripcion" name="descripcion" required autocomplete="off">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_agrupador" class="form-label small fw-bold text-secondary">Agrupador</label>
+                        <select class="form-control" id="edit_agrupador" name="agrupador">
+                            <option value="">Seleccione un agrupador</option>
+                            {% for id_grupo, nome_grupo in agrupadores %}
+                                <option value="{{ id_grupo }}">{{ nome_grupo }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
 
                     <div class="row">
@@ -438,6 +512,7 @@
             const fecha = row.find('.target-fecha-raw').data('fecha');
             const esOperacion = row.find('.target-operacion-raw').data('operacion'); // true o false
             const esPagado = row.find('.target-pagado-raw').data('pagado');       // true o false
+            const agrupadorId = row.find('.target-agrupador-raw').data('agrupador'); // ID del agrupador para pre-selección
 
             $('#edit_descripcion').val(descripcion);
             $('#edit_monto').val(monto);
@@ -447,7 +522,8 @@
 */
             $('#edit_operacion').prop('checked', String(esOperacion).toLowerCase() === 'true');
             $('#edit_pagado').prop('checked', String(esPagado).toLowerCase() === 'true');            
-            
+            $('#edit_agrupador').val(agrupadorId);
+
             // APUNTANDO A LA NUEVA RUTA API CREADA DESDE CERO
             $('#editGastoForm').attr('action', `/api/gastos/editar/${gastoId}`);
 

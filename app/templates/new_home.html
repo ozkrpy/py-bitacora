@@ -66,10 +66,9 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-gray-800"><i class="bi bi-car-front me-2 text-warning"></i>Bitácora Vehicular: {{ vehiculo }}</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary px-2.5 py-1 text-uppercase font-monospace small tracking-wider" data-bs-toggle="modal" data-bs-target="#modalCombustible">
-                        <i class="bi bi-fuel-pump-fill"></i>
-                        <span>Nueva Carga de Combustible</span>
-                    </button>
+                    <a href="{{ url_for('reporte_anual_combustible') }}" class="btn btn-sm btn-outline-primary px-2.5 py-1 text-uppercase font-monospace small tracking-wider">
+                        <i class="bi bi-eye-fill me-1"></i> Ver todas las cargas
+                    </a>
                 </div>
                 <div class="card-body px-4">
                     <div class="row g-3">
@@ -111,12 +110,28 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="card-footer bg-transparent border-0 px-4">
-                    <div class="mt-3 pt-2 border-top d-flex justify-content-between text-muted font-monospace small">
-                        <span>1ra Carga: {{ fecha_primera_carga }}</span>
-                        <span>Última: {{ fecha_ultima_carga }}</span>
+                    <div class="mt-1 pt-2 border-top d-flex justify-content-between text-muted font-monospace small align-items-center w-100">
+                        
+                        <div class="d-flex flex-column text-start">
+                            <span>1ra Carga: {{ fecha_primera_carga }}</span>
+                        </div>
+                        
+                        <div class="d-flex flex-column text-center">
+                            <span>Última: {{ fecha_ultima_carga }}</span>
+                        </div>   
+                        
+                        <div class="d-flex flex-column text-end">
+                            <button type="button" class="btn btn-sm btn-outline-dark px-3 py-1 text-uppercase font-monospace small tracking-wider" data-bs-toggle="modal" data-bs-target="#modalCombustible">
+                                <i class="bi bi-fuel-pump-fill me-1"></i>
+                                <span>Nueva Carga</span>
+                            </button>
+                        </div>
+
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -300,19 +315,10 @@
             </div>
             <div class="modal-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="tablaDetalleGastos">
-                        <thead class="table-light text-uppercase font-monospace small">
-                            <tr>
-                                <th class="ps-4">Fecha</th>
-                                <th>Descripción / Acreedor</th>
-                                <th>Tipo</th>
-                                <th class="text-center">Estado</th>
-                                <th class="text-end pe-4">Monto</th>
-                            </tr>
-                        </thead>
-                        <tbody id="container_detalle_gastos">
-                            </tbody>
-                    </table>
+                    
+                    <div id="tablaDetalleGastos" style="display: none;">
+                        <div id="container_detalle_gastos"></div>
+                    </div>
                 </div>
                 <div id="loading_spinner_modal" class="text-center py-5">
                     <div class="spinner-border text-info" role="status">
@@ -500,7 +506,8 @@
             }
         });
     });
-
+    
+    /*
     $(document).on('click', '.row-agrupador-clickable', function() {
         const row = $(this);
         const agrupadorId = row.data('agrupador-id');
@@ -510,7 +517,7 @@
         const totalAgrupador = row.data('agrupador-total');
         const totalFormateado = new Intl.NumberFormat('de-DE').format(Math.round(totalAgrupador));
 
-        console.log(`Clicked Agrupador ID: ${agrupadorId}, Nombre: ${agrupadorNombre}, Año: ${anno}, Mes: ${mes}, Total: ${totalFormateado}`);
+        // console.log(`Clicked Agrupador ID: ${agrupadorId}, Nombre: ${agrupadorNombre}, Año: ${anno}, Mes: ${mes}, Total: ${totalFormateado}`);
 
         // 1. Configurar título inicial y mostrar Modal con el Loader activo
         $('#modal_agrupador_titulo').text(agrupadorNombre);
@@ -574,7 +581,6 @@
             },
             error: function(xhr, status, error) {
                 $('#loading_spinner_modal').hide();
-                /*console.error("Fallo al traer desglose:", error);*/
                 $('#container_detalle_gastos').html(`
                     <tr>
                         <td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error de red al intentar recuperar los datos de auditoría.</td>
@@ -583,6 +589,94 @@
                 $('#tablaDetalleGastos').fadeIn(200);
             }
         });
+    });*/
+
+    $(document).on('click', '.row-agrupador-clickable', function() {
+        const row = $(this);
+        const agrupadorId = row.data('agrupador-id');
+        const agrupadorNombre = row.data('agrupador-nombre');
+        const anno = row.data('anno');
+        const mes = row.data('mes');
+        const totalAgrupador = row.data('agrupador-total');
+        const totalFormateado = new Intl.NumberFormat('de-DE').format(Math.round(totalAgrupador));
+
+        // 1. Configuración de UI Inicial
+        $('#modal_agrupador_titulo').text(agrupadorNombre);
+        $('#container_detalle_gastos').empty();
+        $('#tablaDetalleGastos').hide();
+        $('#loading_spinner_modal').show();
+        $('#detalleAgrupadorModal').modal('show');
+        $('#modal_agrupador_total').text(totalFormateado);
+
+        // 2. Consumo de la API
+        $.ajax({
+            url: `/api/gastos/desglose-agrupador`,
+            method: 'GET',
+            data: {
+                id_agrupador: agrupadorId,
+                anno: anno,
+                mes: mes
+            },
+            dataType: 'json',
+            success: function(response) {
+                $('#loading_spinner_modal').hide();
+
+                if (response.success && response.data.length > 0) {
+                    let htmlCards = '<div class="list-group list-group-flush">';
+                    
+                    response.data.forEach(gasto => {
+                        const montoFormateado = new Intl.NumberFormat('de-DE').format(Math.round(gasto.monto));
+                        
+                        // Lógica de íconos según estado/tipo
+                        const iconEstado = gasto.pagado ? '✅' : '⏳';
+                        const iconTipo = gasto.operacion ? '💳' : '💸';
+
+                        // Diseño estilo Extracto / Emoji solicitado
+                        htmlCards += `
+                            <div class="list-group-item px-3 py-3 border-bottom border-light">
+                                <div class="mb-1">
+                                    <span class="d-block mb-1">📅 <strong>Fecha:</strong> ${gasto.fecha_pagar}</span>
+                                    <span class="d-block mb-1 text-wrap">📝 <strong>Descripción:</strong> ${gasto.descripcion}</span>
+                                    <span class="d-block mb-1">💰 <strong>Monto:</strong> Gs. ${montoFormateado}</span>
+                                </div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small">
+                                        ${iconTipo} ${gasto.operacion ? 'Crédito' : 'Efectivo/Deb.'}
+                                    </span>
+                                    <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small">
+                                        ${iconEstado} ${gasto.pagado ? 'Pagado' : 'Pendiente'}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    htmlCards += '</div>';
+
+                    $('#container_detalle_gastos').html(htmlCards);
+                    $('#tablaDetalleGastos').fadeIn(200);
+                } else {
+                    $('#container_detalle_gastos').html(`
+                        <div class="text-center text-muted py-5 px-3">
+                            <span class="fs-1 d-block mb-2">📁</span>
+                            <span>No se encontraron transacciones en este periodo.</span>
+                        </div>
+                    `);
+                    $('#tablaDetalleGastos').fadeIn(200);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#loading_spinner_modal').hide();
+                $('#container_detalle_gastos').html(`
+                    <div class="text-center text-danger py-5 px-3">
+                        <span class="fs-1 d-block mb-2">⚠️</span>
+                        <span>Error al recuperar los datos de auditoría.</span>
+                    </div>
+                `);
+                $('#tablaDetalleGastos').fadeIn(200);
+            }
+        });
     });
+
 </script>
 {% endblock %}

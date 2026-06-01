@@ -8,10 +8,12 @@ from app.utilitarios import listar_agrupador, balance_cuenta, calcular_disponibi
 # from app.parametros import SALARIO_NETO
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
-from sqlalchemy import func, desc
+from sqlalchemy import and_, func, desc, case, cast, Float 
+from sqlalchemy.exc import SQLAlchemyError
 import calendar
 from collections import defaultdict
 from zoneinfo import ZoneInfo
+
 
 
 
@@ -177,6 +179,23 @@ def old_index():
     
 
 
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     if current_user.is_authenticated:
+#         return redirect(url_for('index'))
+#     form = LoginForm()
+#     if form.validate_on_submit():
+#         user = User.query.filter_by(username=form.username.data).first()
+#         if user is None or not user.check_password(form.password.data):
+#             flash('Invalid username or password')
+#             return redirect(url_for('login'))
+#         login_user(user, remember=form.remember_me.data)
+#         next_page = request.args.get('next')
+#         if not next_page or url_parse(next_page).netloc != '':
+#             next_page = url_for('index')
+#         return redirect(next_page)
+#     return render_template('login.html', title='Sign In', form=form)
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -192,7 +211,7 @@ def login():
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('index')
         return redirect(next_page)
-    return render_template('login.html', title='Sign In', form=form)
+    return render_template('new_login.html', title='Iniciar Sesion', form=form)
 
 @app.route('/logout')
 def logout():
@@ -589,7 +608,11 @@ def parametrico():
     agrupador_gastos = AgrupadorGastos.query.all()
     gastos_fijos = DeudasPendientes.query.all()
     tarjetas = resumenes_tarjeta_macro() # Tarjetas.query.all()
-    return render_template('parametrico.html', tipos_movimiento=tipos_movimiento, agrupador_gastos=agrupador_gastos, gastos_fijos=gastos_fijos, tarjetas=tarjetas)
+    return render_template('new_parametrico.html', #'parametrico.html', 
+                           tipos_movimiento=tipos_movimiento, 
+                           agrupador_gastos=agrupador_gastos, 
+                           gastos_fijos=gastos_fijos, 
+                           tarjetas=tarjetas)
 
 @app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
 @login_required
@@ -782,6 +805,23 @@ def historico_gastos_mesanno(anno):
     gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).filter(func.strftime("%Y", GastosFijos.fecha_pagar)==anno).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
     return render_template('historico_gastos_mesanno.html', gastos=gastos)
 
+# @app.route('/register', methods=['GET', 'POST'])
+# def register():
+#     if current_user.is_authenticated:
+#         return redirect(url_for('index'))
+#     form = RegistrationForm()
+#     if form.validate_on_submit():
+#         user = User(username=form.username.data, email=form.email.data)
+#         user.set_password(form.password.data)
+#         db.session.add(user)
+#         db.session.commit()
+#         flash('Congratulations, you are now a registered user!')
+#         return redirect(url_for('login'))
+#     else:
+#         for k, v in form.errors.items():
+#             flash('Error en: '+k)
+#     return render_template('register.html', title='Register', form=form)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -797,7 +837,8 @@ def register():
     else:
         for k, v in form.errors.items():
             flash('Error en: '+k)
-    return render_template('register.html', title='Register', form=form)
+    return render_template('new_register.html', title='Registrarse', form=form)
+
 
 @app.route('/modificar_pendiente/<int:pendiente_id>', methods=['GET', 'POST'])
 @login_required
@@ -989,8 +1030,25 @@ def historico_gastos_fijos(anno=None, mes=None):
     periodo_activo = f"{anno}-{mes}"
 
     # 2. Obtener TODOS los gastos fijos de la base de datos ordenados por fecha
-    todos_los_gastos = GastosFijos.query.order_by(GastosFijos.fecha_pagar.desc()).all()
+    # todos_los_gastos = GastosFijos.query.order_by(GastosFijos.id_agrupador_gastos, GastosFijos.id_agrupador_gastos.asc(), GastosFijos.fecha_pagar.desc()).all()
 
+    # todos_los_gastos = GastosFijos.query.join(AgrupadorGastos, GastosFijos.id_agrupador_gastos == AgrupadorGastos.id).order_by(AgrupadorGastos.agrupador.asc(), GastosFijos.fecha_pagar.desc(), GastosFijos.id.desc()).all()
+    todos_los_gastos = GastosFijos.query.outerjoin(AgrupadorGastos, GastosFijos.id_agrupador_gastos == AgrupadorGastos.id).order_by(AgrupadorGastos.agrupador.asc(), GastosFijos.fecha_pagar.desc(), GastosFijos.id.desc()).all()
+
+    desglose_query = db.session.query(
+        func.strftime('%m', Movimientos.date).label('mes'),
+        TiposMovimiento.tipo.label('tipo_nombre'),
+        func.sum(Movimientos.monto_operacion).label('subtotal')
+    ).join(
+        TiposMovimiento, Movimientos.id_tipo_movimiento == TiposMovimiento.id
+    ).filter(
+        func.strftime('%Y', Movimientos.date) == str(anno)
+        # , condicion_deuda # Filtramos para que liste estrictamente gastos/deudas
+    ).group_by(
+        func.strftime('%m', Movimientos.date),
+        TiposMovimiento.tipo
+    ).all()
+    
     # 3. Construir un árbol limpio de Años y Meses disponibles en la Base de Datos
     # Estructura resultante esperada: { 2026: ['01', '02', '05'], 2025: ['11', '12'] }
     menu_cronologico = {}
@@ -1047,6 +1105,367 @@ def historico_gastos_fijos(anno=None, mes=None):
     )
 
 
+
+
+@app.route('/reporte/anual')
+@login_required
+def reporte_anual():
+    # Extraemos el año de la columna 'date' usando strftime
+    anno_extract = func.strftime('%Y', Movimientos.date)
+    
+    # Construimos las condiciones basadas en tus requerimientos:
+    # Deuda: Todos excepto 10 y 18
+        # 2. Reparación de las condiciones lógicas usando and_()
+    condicion_deuda = and_(
+        Movimientos.id_tipo_movimiento != 10, 
+        Movimientos.id_tipo_movimiento != 18
+    )
+    condicion_pago = (Movimientos.id_tipo_movimiento == 10)
+    condicion_descuento = (Movimientos.id_tipo_movimiento == 18)
+
+    # 3. La query corregida (envolviendo las condiciones en una lista [] para evitar ambigüedades en case)
+    reporte_query = db.session.query(
+        func.strftime('%Y', Movimientos.date).label('anno'),
+        func.sum(case([(condicion_deuda, Movimientos.monto_operacion)], else_=0)).label('total_deuda'),
+        func.sum(case([(condicion_pago, Movimientos.monto_operacion)], else_=0)).label('total_pagos'),
+        func.sum(case([(condicion_descuento, Movimientos.monto_operacion)], else_=0)).label('total_descuentos')
+    ).group_by(func.strftime('%Y', Movimientos.date)).order_by(func.strftime('%Y', Movimientos.date).desc()).all()
+
+    # Formateamos los resultados en una lista de diccionarios para Jinja2
+    datos_anuales = []
+    for r in reporte_query:
+        # Deuda Neta Real = Deuda - Pagos - Descuentos
+        deuda_neta = (r.total_deuda or 0) - (r.total_pagos or 0) - (r.total_descuentos or 0)
+        
+        datos_anuales.append({
+            'anno': r.anno,
+            'deuda': r.total_deuda or 0,
+            'pagos': r.total_pagos or 0,
+            'descuentos': r.total_descuentos or 0,
+            'neto': deuda_neta
+        })
+
+    return render_template('new_reporte_anual_tarjeta.html', datos_anuales=datos_anuales)
+
+# @app.route('/reporte_mensual/<int:anno>')
+# @login_required
+# def reporte_mensual(anno):
+#     # Definimos las mismas condiciones exactas que blindamos en el reporte anual
+#     condicion_deuda = and_(
+#         Movimientos.id_tipo_movimiento != 10, 
+#         Movimientos.id_tipo_movimiento != 18
+#     )
+#     condicion_pago = (Movimientos.id_tipo_movimiento == 10)
+#     condicion_descuento = (Movimientos.id_tipo_movimiento == 18)
+
+#     # Query para agrupar por mes ('%m') filtrando por el año recibido
+#     reporte_query = db.session.query(
+#         func.strftime('%m', Movimientos.date).label('mes'),
+#         func.sum(case([(condicion_deuda, Movimientos.monto_operacion)], else_=0)).label('total_deuda'),
+#         func.sum(case([(condicion_pago, Movimientos.monto_operacion)], else_=0)).label('total_pagos'),
+#         func.sum(case([(condicion_descuento, Movimientos.monto_operacion)], else_=0)).label('total_descuentos')
+#     ).filter(
+#         func.strftime('%Y', Movimientos.date) == str(anno)
+#     ).group_by(
+#         func.strftime('%m', Movimientos.date)
+#     ).order_by(
+#         func.strftime('%m', Movimientos.date).asc()  # Enero a Diciembre
+#     ).all()
+
+#     # Mapeo opcional para mostrar nombres de meses legibles en la interfaz de Jinja
+#     meses_nombre = {
+#         '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
+#         '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
+#         '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+#     }
+
+    
+
+#     return render_template(
+#         'new_reporte_mensual_tarjeta.html', 
+#         reporte=reporte_query, 
+#         anno=anno, 
+#         meses_nombre=meses_nombre
+#     )
+
+
+
+@app.route('/reporte_mensual/<int:anno>')
+@login_required
+def reporte_mensual(anno):
+    # 1. Definimos las mismas condiciones exactas que blindamos en el reporte anual
+    condicion_deuda = and_(
+        Movimientos.id_tipo_movimiento != 10, 
+        Movimientos.id_tipo_movimiento != 18
+    )
+    condicion_pago = (Movimientos.id_tipo_movimiento == 10)
+    condicion_descuento = (Movimientos.id_tipo_movimiento == 18)
+
+    # Query macro mensual (Totales globales por mes)
+    reporte_query = db.session.query(
+        func.strftime('%m', Movimientos.date).label('mes'),
+        func.sum(case([(condicion_deuda, Movimientos.monto_operacion)], else_=0)).label('total_deuda'),
+        func.sum(case([(condicion_pago, Movimientos.monto_operacion)], else_=0)).label('total_pagos'),
+        func.sum(case([(condicion_descuento, Movimientos.monto_operacion)], else_=0)).label('total_descuentos')
+    ).filter(
+        func.strftime('%Y', Movimientos.date) == str(anno)
+    ).group_by(
+        func.strftime('%m', Movimientos.date)
+    ).order_by(
+        func.strftime('%m', Movimientos.date).asc()
+    ).all()
+
+    # 2. NUEVA QUERY OPTIMIZADA: Trae el desglose de gastos agrupados por mes y tipo de movimiento
+    desglose_query = db.session.query(
+        func.strftime('%m', Movimientos.date).label('mes'),
+        TiposMovimiento.tipo.label('tipo_nombre'),
+        func.sum(Movimientos.monto_operacion).label('subtotal')
+    ).join(
+        TiposMovimiento, Movimientos.id_tipo_movimiento == TiposMovimiento.id
+    ).filter(
+        func.strftime('%Y', Movimientos.date) == str(anno)
+        # , condicion_deuda # Filtramos para que liste estrictamente gastos/deudas
+    ).group_by(
+        func.strftime('%m', Movimientos.date),
+        TiposMovimiento.tipo
+    ).all()
+
+    # Organizar los desgloses en un diccionario indexado por mes {'01': [...], '02': [...]}
+    desglose_por_mes = {}
+    for d in desglose_query:
+        if d.mes not in desglose_por_mes:
+            desglose_por_mes[d.mes] = []
+        desglose_por_mes[d.mes].append({
+            'tipo_nombre': d.tipo_nombre,
+            'subtotal': d.subtotal
+        })
+
+    # Mapeo para mostrar nombres de meses legibles
+    meses_nombre = {
+        '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
+        '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
+        '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+    }
+
+    # 3. CONSTRUCCIÓN DE LA ESTRUCTURA FINAL PARA JINJA2
+    # Procesamos los datos calculando el neto y adjuntando su desglose correspondiente
+    reporte_procesado = []
+    for registro in reporte_query:
+        t_deuda = registro.total_deuda or 0
+        t_pagos = registro.total_pagos or 0
+        t_descuentos = registro.total_descuentos or 0
+        neto = t_deuda - t_pagos - t_descuentos
+
+        reporte_procesado.append({
+            'mes_id': registro.mes,  # Ej: '01'
+            'mes_nombre': meses_nombre.get(registro.mes, registro.mes),
+            'total_deuda': t_deuda,
+            'total_pagos': t_pagos,
+            'total_descuentos': t_descuentos,
+            'neto': neto,
+            'desglose': desglose_por_mes.get(registro.mes, []) # Lista de gastos de este mes
+        })
+
+    return render_template(
+        'new_reporte_mensual_tarjeta.html', 
+        reporte=reporte_procesado, 
+        anno=anno,
+        meses_nombre=meses_nombre
+    )
+
+
+
+
+# @app.route('/reporte_combustible_anual')
+# @login_required
+# def reporte_combustible_anual():
+#     # Agrupamos por año utilizando 'fecha_carga' (o 'date', según prefieras)
+#     # Litros totales por año calculados en SQL: SUM(monto_carga / precio)
+#     reporte_query = db.session.query(
+#         func.strftime('%Y', Cargas.fecha_carga).label('anno'),
+#         func.sum(Cargas.monto_carga).label('total_inversion'),
+#         func.sum(cast(Cargas.monto_carga, Float) / cast(Cargas.precio, Float)).label('total_litros'),
+#         func.count(Cargas.id).label('total_recargas')
+#     ).group_by(
+#         func.strftime('%Y', Cargas.fecha_carga)
+#     ).order_by(
+#         func.strftime('%Y', Cargas.fecha_carga).desc() # Años más recientes arriba
+#     ).all()
+
+#     # Procesamos la información para entregar un diccionario limpio a Jinja2
+#     reporte_procesado = []
+#     for registro in reporte_query:
+#         if not registro.anno:
+#             continue
+            
+#         t_inversion = registro.total_inversion or 0
+#         t_litros = registro.total_litros or 0.0
+        
+#         # Calcular un precio promedio ponderado general por litro en el año
+#         precio_promedio = t_inversion / t_litros if t_litros > 0 else 0
+
+#         reporte_procesado.append({
+#             'anno': int(registro.anno),
+#             'total_inversion': t_inversion,
+#             'total_litros': t_litros,
+#             'total_recargas': registro.total_recargas,
+#             'precio_promedio': precio_promedio
+#         })
+
+#     return render_template(
+#         'new_reporte_anual_combustible.html', 
+#         reporte=reporte_procesado
+#     )
+
+@app.route('/combustible/reporte-anual')
+def reporte_anual_combustible():
+    # 1. Traer todas las cargas ordenadas por fecha de manera descendente
+    cargas_raw = Cargas.query.order_by(Cargas.fecha_carga.desc()).all()
+    
+    # Mapeo de meses en español
+    meses_nombres = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto", 
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    
+    # Estructura de agrupación intermedia: { año: { mes_num: [ lista_de_recargas ] } }
+    datos_agrupados = {}
+    
+    # Procesar de forma cronológica inversa para armar la estructura anidada
+    for idx, c in enumerate(cargas_raw):
+        if not c.fecha_carga:
+            continue
+            
+        anno = c.fecha_carga.year
+        mes_num = c.fecha_carga.month
+        
+        if anno not in datos_agrupados:
+            datos_agrupados[anno] = {}
+        if mes_num not in datos_agrupados[anno]:
+            datos_agrupados[anno][mes_num] = []
+            
+        # Calcular los Litros dinámicamente: monto_carga / precio
+        litros = (c.monto_carga / c.precio) if (c.precio and c.precio > 0) else 0.0
+        
+        # --- CÁLCULO DE MÉTRICAS COMPLEMENTARIAS ENTRE CARGAS ---
+        # Buscamos la carga cronológicamente anterior (que estará más adelante en nuestra lista 'cargas_raw' por el .desc())
+        carga_anterior = None
+        if idx + 1 < len(cargas_raw):
+            carga_anterior = cargas_raw[idx + 1]
+            
+        # Duración en días
+        duracion_dias = (c.fecha_carga - carga_anterior.fecha_carga).days if carga_anterior else 0
+        
+        # Rendimiento Consumo por cada 100Km
+        recorrido_100km = 0.0
+        if carga_anterior and c.odometro and carga_anterior.odometro:
+            kms_recorridos = c.odometro - carga_anterior.odometro
+            if kms_recorridos > 0:
+                # Fórmula estándar: (Litros consumidos / Kilómetros recorridos) * 100
+                recorrido_100km = (litros / kms_recorridos) * 100
+
+        # Si el cálculo da 0 o no hay historial anterior, dejamos un promedio base estimado (ej: 8.5 L/100Km)
+        if recorrido_100km <= 0:
+            recorrido_100km = 8.5
+            
+        datos_agrupados[anno][mes_num].append({
+            "id": c.id,
+            "fecha": c.fecha_carga,
+            "emblema": c.emblema if c.emblema else "Sin Emblema",
+            "precio": c.precio if c.precio else 0,
+            "odometro": c.odometro if c.odometro else 0,
+            "monto": c.monto_carga if c.monto_carga else 0,
+            "litros": litros,
+            "recorrido_100km": recorrido_100km,
+            "duracion_dias": duracion_dias if duracion_dias > 0 else 7  # Fallback si es el primer registro
+        })
+
+    # 2. Compilar la lista estructurada final ("items") requerida por la vista Jinja
+    items = []
+    
+    for anno in sorted(datos_agrupados.keys(), reverse=True):
+        total_inversion = 0
+        total_litros = 0.0
+        total_recargas = 0
+        suma_recorrido_100km = 0.0
+        
+        lista_meses_items = []
+        
+        # Ordenar meses de Diciembre a Enero
+        for mes_num in sorted(datos_agrupados[anno].keys(), reverse=True):
+            recargas_del_mes = datos_agrupados[anno][mes_num]
+            
+            for rec in recargas_del_mes:
+                total_inversion += rec["monto"]
+                total_litros += rec["litros"]
+                total_recargas += 1
+                suma_recorrido_100km += rec["recorrido_100km"]
+                
+            lista_meses_items.append({
+                "nombre_mes": meses_nombres[mes_num],
+                "recargas": recargas_del_mes
+            })
+            
+        # Calcular los promedios globales anuales para las tarjetas principales del año
+        promedio_litros_recarga = (total_litros / total_recargas) if total_recargas > 0 else 0.0
+        consumo_100_km = (suma_recorrido_100km / total_recargas) if total_recargas > 0 else 0.0
+        
+        # Autonomía estimada del tanque basado en el consumo anual (Ej: con un tanque promedio lleno de 50L)
+        distancia_por_tanque = (50 / consumo_100_km * 100) if consumo_100_km > 0 else 0.0
+
+        # Mapear los datos a un contenedor estructurado por atributos independientes
+        class AñoResumen:
+            pass
+            
+        item = AñoResumen()
+        item.anno = anno
+        item.total_inversion = total_inversion
+        item.total_litros = total_litros
+        item.promedio_litros_recarga = promedio_litros_recarga
+        item.distancia_por_tanque = distancia_por_tanque
+        item.consumo_100_km = consumo_100_km
+        item.total_recargas = total_recargas
+        item.meses = lista_meses_items
+        
+        items.append(item)
+
+    return render_template('new_reporte_anual_combustible.html', items=items)
+
+
+@app.route('/reporte_combustible_mensual/<int:anno>')
+@login_required
+def reporte_combustible_mensual(anno):
+    # Agrupamos por mes utilizando 'fecha_carga' (o 'date', según prefieras)
+    return render_template(
+        'new_reporte_mensual_combustible.html'
+    )
+
+@app.route('/buscar', methods=['GET'])
+def buscar_movimientos():
+    query = request.args.get('q', '').strip()
+    
+    resultados_gastos = []
+    resultados_tarjetas = []
+    
+    if query:
+        # Búsqueda adaptativa en Gastos Fijos (Expenses)
+        resultados_gastos = GastosFijos.query.filter(
+            GastosFijos.descripcion.ilike(f"%{query}%")
+        ).order_by(GastosFijos.fecha_pagar.desc()).all()
+        
+        # Búsqueda adaptativa en Movimientos (Credit Card)
+        resultados_tarjetas = Movimientos.query.filter(
+            Movimientos.descripcion.ilike(f"%{query}%")
+        ).order_by(Movimientos.fecha_operacion.desc()).all()
+        
+    return render_template(
+        'new_buscar.html', 
+        query=query, 
+        resultados_gastos=resultados_gastos, 
+        resultados_tarjetas=resultados_tarjetas
+    )
+
 # API ENDPOINTS
     # Actualiza un gasto fijo específico con datos enviados desde un formulario modal en la interfaz de usuario.
 @app.route('/api/gastos/editar/<int:id>', methods=['POST'])
@@ -1060,6 +1479,7 @@ def api_editar_gasto(id):
         fecha_str = request.form.get('fecha_pagar')
         gasto.descripcion = request.form.get('descripcion')
         gasto.monto = float(request.form.get('monto'))
+        gasto.id_agrupador_gastos = int(request.form.get('agrupador')) if request.form.get('agrupador') else None
         
         # Procesar los switches booleanos
         gasto.operacion = 'operacion' in request.form  # True si está marcado, False si no
@@ -1186,33 +1606,27 @@ def api_generar_siguiente_mes():
         deudas = DeudasPendientes.query.filter(DeudasPendientes.estado == True).all()
         
         for deuda in deudas:
-            print(f"DEBUG: Procesando deuda pendiente: {deuda.descripcion} - Monto: {deuda.monto} - Cuotas: {deuda.cuotas} - Cuotas Pagadas: {deuda.cuotas_pagadas}")
             descontado = False
             operacion = False 
             
             # Control e incremento de cuotas
             if deuda.cuotas > 0:
-                print(f"DEBUG: Deuda con cuotas detectada. Cuotas totales: {deuda.cuotas}, Cuotas pagadas antes: {deuda.cuotas_pagadas}")
                 deuda.cuotas_pagadas += 1
                 db.session.add(deuda)
                 
             # Regla de auto-pagado para ciertos servicios fijos
             if deuda.descripcion in ['DESCUENTO IPS', 'SERVICIOS TELEFONIA', 'INTERNET & TV', 'S24']: 
-                print(f"DEBUG: Deuda de servicio fijo detectada. Marcando como pagada automáticamente: {deuda.descripcion}")
                 descontado = True
                 operacion = False 
             if deuda.descripcion in ['REFERENCIA']:
-                print(f"DEBUG: Deuda de operacion detectada. Marcando como operacion y pagada automáticamente: {deuda.descripcion}")
                 descontado = True
                 operacion = True
             # Formatear el texto de cuotas si corresponde
-            string_cuotas = f" ({deuda.cuotas_pagadas}/{deuda.cuotas})" if deuda.cuotas > 0 else ""
+            string_cuotas = f" (Cuota {deuda.cuotas_pagadas} de {deuda.cuotas}, monto cuota: Gs. {deuda.monto:,.0f})" if deuda.cuotas > 0 else ""
 
-            print(f"DEBUG: Cuotas después del procesamiento: {deuda.cuotas_pagadas}/{deuda.cuotas} - Descontado: {descontado} - Operacion: {operacion}")
-
-            nueva_descripcion = f"{deuda.descripcion}{string_cuotas}"
             
-            print(f"DEBUG: Nueva descripción para el gasto fijo: {nueva_descripcion}")
+            nueva_descripcion = f"{deuda.descripcion}{string_cuotas}"  # Formateo con puntos como separadores de miles
+            
 
             # Crear registro en GastosFijos
             nuevo_gasto = GastosFijos(
@@ -1225,10 +1639,7 @@ def api_generar_siguiente_mes():
                 id_agrupador_gastos=deuda.id_agrupador
             )
 
-            print(f"DEBUG: Creando gasto fijo para el nuevo mes: {nuevo_gasto.descripcion} - Monto: {nuevo_gasto.monto} - Pagado: {nuevo_gasto.pagado} - Operacion: {nuevo_gasto.operacion}")
-
             db.session.add(nuevo_gasto)
-
             
         db.session.commit()
         
@@ -1329,3 +1740,175 @@ def api_desglose_agrupador():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/combustible/modificar/<int:id>', methods=['POST'])
+@login_required  # Descomenta si usas Flask-Login
+def api_modificar_combustible(id):
+    print(f"Recibida solicitud de modificación para Carga ID: {id}")
+    try:
+        # 1. Buscar el registro exacto usando get_or_404 por seguridad
+        carga = Cargas.query.get_or_404(id)
+        
+        # 2. Extraer y procesar la fecha del formulario (viene como 'YYYY-MM-DD')
+        fecha_str = request.form.get('fecha_carga')
+        if fecha_str:
+            carga.fecha_carga = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            
+        # 3. Extraer y convertir los valores numéricos y de texto
+        carga.odometro = int(request.form.get('odometro', carga.odometro))
+        carga.emblema = request.form.get('emblema', carga.emblema).strip()
+        carga.precio = int(request.form.get('precio', carga.precio))
+        carga.monto_carga = int(request.form.get('monto_carga', carga.monto_carga))
+        
+        # 4. Guardar los cambios en la base de datos de forma segura
+        db.session.commit()
+        flash('Recarga de combustible actualizada correctamente.', 'success')
+        
+    except ValueError as ve:
+        # Captura errores si los números o la fecha vienen con un formato incorrecto
+        db.session.rollback()
+        flash('Error en el formato de los datos ingresados.', 'danger')
+        
+    except SQLAlchemyError  as e:
+        # Captura cualquier error nativo de la base de datos
+        db.session.rollback()
+        flash('Error al actualizar la base de datos.', 'danger')
+        
+    # 5. Redirigir siempre de regreso al historial anual
+    return redirect(url_for('reporte_anual_combustible'))
+
+    # Endpoint unificado para crear y editar registros paramétricos (Tipos, Agrupadores, Tarjetas, Fijos) con una sola ruta y lógica compartida. Reemplaza las acciones POST tradicionales de cada entidad y simplifica el mantenimiento del código.
+@app.route('/api/parametrico/guardar', methods=['POST'])
+@login_required
+def api_guardar_parametrico():
+    """
+    Endpoint unificado para crear y editar registros paramétricos (Tipos, Agrupadores, Tarjetas, Fijos).
+    Reemplaza la acción POST tradicional.
+    """
+    try:
+        origen = request.form.get('origen')
+        accion = request.form.get('accion') # 'nuevo' o 'editar'
+        id_registro = request.form.get('id')
+
+        if not origen or not accion:
+            return jsonify({'success': False, 'error': 'Parámetros origen o acción faltantes.'}), 400
+
+        # --- Manejo de TIPOS DE MOVIMIENTOS ---
+        if origen == 'TIPOS':
+            tipo_nombre = request.form.get('tipo')
+            if not tipo_nombre:
+                return jsonify({'success': False, 'error': 'Falta el nombre del tipo.'}), 400
+            
+            if accion == 'nuevo':
+                nuevo_tipo = TiposMovimiento(tipo=tipo_nombre)
+                db.session.add(nuevo_tipo)
+            elif accion == 'editar':
+                reg = TiposMovimiento.query.get(id_registro)
+                if reg: reg.tipo = tipo_nombre
+
+        # --- Manejo de AGRUPADORES DE GASTOS ---
+        elif origen == 'AGRUPADORES':
+            agrupador_nombre = request.form.get('agrupador')
+            if not agrupador_nombre:
+                return jsonify({'success': False, 'error': 'Falta el nombre del agrupador.'}), 400
+            
+            if accion == 'nuevo':
+                nuevo_agrupador = AgrupadorGastos(agrupador=agrupador_nombre)
+                db.session.add(nuevo_agrupador)
+            elif accion == 'editar':
+                reg = AgrupadorGastos.query.get(id_registro)
+                if reg: reg.agrupador = agrupador_nombre
+
+        # --- Manejo de TARJETAS DE CRÉDITO ---
+        elif origen == 'TARJETAS':
+            banco = request.form.get('banco')
+            numero = request.form.get('numero')
+            vencimiento = request.form.get('vencimiento')
+            estado = request.form.get('estado') == 'true' # Evaluación booleana
+
+            if not banco or not numero:
+                return jsonify({'success': False, 'error': 'Datos de tarjeta incompletos.'}), 400
+
+            if accion == 'nuevo':
+                nueva_tarjeta = Tarjetas(banco=banco, numero=numero, vencimiento=vencimiento, estado=estado)
+                db.session.add(nueva_tarjeta)
+            elif accion == 'editar':
+                reg = Tarjetas.query.get(id_registro)
+                if reg:
+                    reg.banco = banco
+                    reg.numero = numero
+                    reg.vencimiento = vencimiento
+                    reg.estado = estado
+
+        # --- Manejo de GASTOS FIJOS / PENDIENTES ---
+        elif origen == 'FIJOS':
+            descripcion = request.form.get('descripcion')
+            monto = request.form.get('monto', type=float)
+            cuotas = request.form.get('cuotas', type=int)
+            cuotas_pagadas = request.form.get('cuotas_pagadas', type=int)
+            estado = request.form.get('estado') == 'true'
+
+
+            if not descripcion or monto is None:
+                return jsonify({'success': False, 'error': 'Datos de compromiso financiero incompletos.'}), 400
+
+            if accion == 'nuevo':
+                nuevo_fijo = DeudasPendientes(
+                    descripcion=descripcion, monto=monto, cuotas=cuotas, 
+                    cuotas_pagadas=cuotas_pagadas, estado=estado
+                )
+                db.session.add(nuevo_fijo)
+            elif accion == 'editar':
+                reg = DeudasPendientes.query.get(id_registro)
+                if reg:
+                    reg.descripcion = descripcion
+                    reg.monto = monto
+                    reg.cuotas = cuotas
+                    reg.cuotas_pagadas = cuotas_pagadas
+                    reg.estado = estado
+
+
+        db.session.commit()
+        return jsonify({'success': True, 'msg': 'Registro procesado correctamente.'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/parametrico/eliminar', methods=['POST'])
+@login_required
+def api_eliminar_parametrico():
+    """
+    Endpoint único para la eliminación de registros por AJAX.
+    Reemplaza rutas como borrar_tarjeta, borrar_pendiente, etc.
+    """
+    try:
+        origen = request.json.get('origen') # Pasado vía JSON body
+        id_registro = request.json.get('id')
+
+        if not origen or not id_registro:
+            return jsonify({'success': False, 'error': 'Parámetros insuficientes para la eliminación.'}), 400
+
+        if origen == 'TIPOS':
+            reg = TiposMovimiento.query.get(id_registro)
+        elif origen == 'AGRUPADORES':
+            reg = AgrupadorGastos.query.get(id_registro)
+        elif origen == 'TARJETAS':
+            reg = Tarjetas.query.get(id_registro)
+        elif origen == 'FIJOS':
+            reg = DeudasPendientes.query.get(id_registro)
+        else:
+            return jsonify({'success': False, 'error': 'Origen de datos no válido.'}), 400
+
+        if not reg:
+            return jsonify({'success': False, 'error': 'El registro no existe o ya fue eliminado.'}), 404
+
+        db.session.delete(reg)
+        db.session.commit()
+        return jsonify({'success': True, 'msg': 'Registro eliminado exitosamente.'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    

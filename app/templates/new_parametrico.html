@@ -1,0 +1,460 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<div class="container-fluid py-4 bg-light min-vh-100">
+    <div class="mb-4">
+        <h2 class="h4 mb-1 text-dark fw-bold">Configuración del Sistema</h2>
+        <p class="text-muted small mb-0">Administra los parámetros globales, tarjetas y cuentas fijas desde el menú lateral de manera asíncrona.</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-xl-3 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 sticky-lg-top" style="top: 2rem; z-index: 1020;">
+                <div class="nav flex-column nav-pills custom-nav-pills gap-2" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active d-flex align-items-center rounded-3 py-3 px-3 border-0 text-start" id="v-pills-tipos-tab" data-bs-toggle="pill" data-bs-target="#v-pills-tipos" type="button" role="tab"><div class="icon-shape bg-primary-soft text-primary rounded-3 me-3 d-flex align-items-center justify-content-center nav-icon-box"><i class="bi bi-arrow-left-right"></i></div><span class="fw-semibold font-size-md">Tipos de Movimientos</span></button>
+                    <button class="nav-link d-flex align-items-center rounded-3 py-3 px-3 border-0 text-start" id="v-pills-agrupadores-tab" data-bs-toggle="pill" data-bs-target="#v-pills-agrupadores" type="button" role="tab"><div class="icon-shape bg-warning-soft text-warning rounded-3 me-3 d-flex align-items-center justify-content-center nav-icon-box"><i class="bi bi-folder2-open"></i></div><span class="fw-semibold font-size-md">Agrupador de Gastos</span></button>
+                    <button class="nav-link d-flex align-items-center rounded-3 py-3 px-3 border-0 text-start" id="v-pills-tarjetas-tab" data-bs-toggle="pill" data-bs-target="#v-pills-tarjetas" type="button" role="tab"><div class="icon-shape bg-info-soft text-info rounded-3 me-3 d-flex align-items-center justify-content-center nav-icon-box"><i class="bi bi-credit-card-2-front"></i></div><span class="fw-semibold font-size-md">Tarjetas de Crédito</span></button>
+                    <button class="nav-link d-flex align-items-center rounded-3 py-3 px-3 border-0 text-start" id="v-pills-fijos-tab" data-bs-toggle="pill" data-bs-target="#v-pills-fijos" type="button" role="tab"><div class="icon-shape bg-success-soft text-success rounded-3 me-3 d-flex align-items-center justify-content-center nav-icon-box"><i class="bi bi-calendar3"></i></div><span class="fw-semibold font-size-md">Pendientes, Fijos y Variables</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-9 col-lg-8">
+            <div class="tab-content" id="v-pills-tabContent">
+                
+                <div class="tab-pane fade show active" id="v-pills-tipos" role="tabpanel">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-4 d-flex justify-content-between align-items-center border-0 rounded-top-4">
+                            <div><h5 class="m-0 fw-bold text-dark">Tipos de Movimientos</h5></div>
+                            <button class="btn btn-primary px-3 rounded-3 shadow-none fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTipo" onclick="setModalTipo('nuevo')"><i class="bi bi-plus-lg me-1 small"></i> Agregar Tipo</button>
+                        </div>
+                        <div class="card-body px-0 pt-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                    <thead><tr class="table-light-header"><th class="ps-4" style="width: 15%">ID</th><th>Descripción</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                                    <tbody>
+                                        {% for tipo in tipos_movimiento %}
+                                        <tr id="row-TIPOS-{{ tipo.id }}">
+                                            <td class="ps-4 text-muted small fw-mono">#{{ tipo.id }}</td>
+                                            <td><span class="fw-semibold text-dark">{{ tipo.tipo }}</span></td>
+                                            <td class="text-end pe-4">
+                                                <div class="d-inline-flex gap-2">
+                                                    <button class="btn btn-icon btn-light-info" data-bs-toggle="modal" data-bs-target="#modalTipo" onclick="setModalTipo('editar', '{{ tipo.id }}', '{{ tipo.tipo }}')"><i class="bi bi-pencil-square"></i></button>
+                                                    <button type="button" class="btn btn-icon btn-light-danger" onclick="eliminarParametrico('TIPOS', '{{ tipo.id }}')"><i class="bi bi-trash3"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="v-pills-agrupadores" role="tabpanel">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-4 d-flex justify-content-between align-items-center border-0 rounded-top-4">
+                            <div><h5 class="m-0 fw-bold text-dark">Agrupadores de Gastos</h5></div>
+                            <button class="btn btn-primary px-3 rounded-3 shadow-none fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAgrupador" onclick="setModalAgrupador('nuevo')"><i class="bi bi-plus-lg me-1 small"></i> Agregar Agrupador</button>
+                        </div>
+                        <div class="card-body px-0 pt-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                    <thead><tr class="table-light-header"><th class="ps-4" style="width: 15%">ID</th><th>Descripción</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                                    <tbody>
+                                        {% for agrupador in agrupador_gastos %}
+                                        <tr id="row-AGRUPADORES-{{ agrupador.id }}">
+                                            <td class="ps-4 text-muted small fw-mono">#{{ agrupador.id }}</td>
+                                            <td><span class="fw-semibold text-dark">{{ agrupador.agrupador }}</span></td>
+                                            <td class="text-end pe-4">
+                                                <div class="d-inline-flex gap-2">
+                                                    <button class="btn btn-icon btn-light-info" data-bs-toggle="modal" data-bs-target="#modalAgrupador" onclick="setModalAgrupador('editar', '{{ agrupador.id }}', '{{ agrupador.agrupador }}')"><i class="bi bi-pencil-square"></i></button>
+                                                    <button type="button" class="btn btn-icon btn-light-danger" onclick="eliminarParametrico('AGRUPADORES', '{{ agrupador.id }}')"><i class="bi bi-trash3"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="v-pills-tarjetas" role="tabpanel" aria-labelledby="v-pills-tarjetas-tab">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-4 d-flex justify-content-between align-items-center border-0 rounded-top-4">
+                            <div>
+                                <h5 class="m-0 fw-bold text-dark">Tarjetas de Crédito</h5>
+                                <p class="text-muted small mb-0">Controla tus líneas de crédito, cierres y balances actuales.</p>
+                            </div>
+                            <button class="btn btn-primary px-3 rounded-3 shadow-none fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTarjeta" onclick="setModalTarjeta('nuevo')">
+                                <i class="bi bi-plus-lg me-1 small"></i> Agregar Tarjeta
+                            </button>
+                        </div>
+                        <div class="card-body px-0 pt-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                    <thead>
+                                        <tr class="table-light-header">
+                                            <th class="ps-4">Información de la Tarjeta</th>
+                                            <th class="text-end pe-4">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tarjeta in tarjetas %}
+                                        <tr id="row-TARJETAS-{{ tarjeta.id }}" class="{{ 'opacity-60 bg-light-muted' if not tarjeta.estado }}">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <div class="me-3 d-flex align-items-center">
+                                                        <i class="bi bi-credit-card-2-front fs-5 {{ 'text-success' if tarjeta.estado else 'text-muted' }}"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span class="fw-bold text-dark d-block mb-0">
+                                                            {{ tarjeta.banco }} <small class="text-muted fw-mono">(*{{ tarjeta.numero }})</small>
+                                                        </span>
+                                                        <small class="text-muted font-size-xs">Vencimiento: {{ tarjeta.vencimiento }}</small>
+                                                    </div>
+                                                    {% if not tarjeta.estado %}
+                                                    <span class="badge bg-secondary ms-2 rounded-pill font-size-xs">Inactiva</span>
+                                                    {% else %}
+                                                    <span class="badge bg-success ms-2 rounded-pill font-size-xs">Activa</span>
+                                                    {% endif %}
+                                                    
+                                                </div>
+                                                <div class="bg-light p-2 rounded-3 border-0 small px-3" style="max-width: 500px;">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span class="text-muted">Compras: <strong class="text-dark fw-semibold">Gs. {{ "{:,.0f}".format(tarjeta.compras).replace(",", ".") }}</strong></span>
+                                                        <span class="text-muted ms-4">Pagos: <strong class="text-success fw-semibold">Gs. {{ "{:,.0f}".format(tarjeta.pagos).replace(",", ".") }}</strong></span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 align-middle">
+                                                <div class="d-inline-flex gap-2">
+                                                    <button class="btn btn-icon btn-light-info" data-bs-toggle="modal" data-bs-target="#modalTarjeta" 
+                                                            onclick="setModalTarjeta('editar', '{{ tarjeta.id }}', '{{ tarjeta.banco }}', '{{ tarjeta.numero }}', '{{ tarjeta.vencimiento }}', '{{ tarjeta.estado }}')">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+                                                    <!-- <a href="{{ url_for('borrar_tarjeta', tarjeta_id=tarjeta.id) }}" class="btn btn-icon btn-light-danger" onclick="return confirm('¿Eliminar tarjeta?');">
+                                                        <i class="bi bi-trash3"></i>
+                                                    </a> -->
+                                                    <button type="button" class="btn btn-icon btn-light-danger" onclick="eliminarParametrico('TARJETAS', '{{ tarjeta.id }}')"><i class="bi bi-trash3"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="v-pills-fijos" role="tabpanel">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-4 d-flex justify-content-between align-items-center border-0 rounded-top-4">
+                            <div><h5 class="m-0 fw-bold text-dark">Gastos Fijos y Pendientes</h5></div>
+                            <button class="btn btn-primary px-3 rounded-3 shadow-none fw-semibold" data-bs-toggle="modal" data-bs-target="#modalGastoFijo" onclick="setModalGastoFijo('nuevo')"><i class="bi bi-plus-lg me-1 small"></i> Agregar Gasto</button>
+                        </div>
+                        <div class="card-body px-0 pt-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 custom-table">
+                                    <thead><tr class="table-light-header"><th class="ps-4">Detalle del Compromiso</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                                    <tbody>
+                                        {% for fijo in gastos_fijos %}
+                                        {% set es_pagado = fijo.estado and fijo.cuotas_pagadas >= fijo.cuotas and fijo.cuotas > 0 %}
+                                        <tr id="row-FIJOS-{{ fijo.id }}" class="{{ 'bg-light-success-row' if es_pagado else ('opacity-60' if not fijo.estado else '') }}">
+                                            <td class="ps-4 py-3">
+                                                <span class="fw-bold text-dark d-block mb-1">{{ fijo.descripcion }}</span>
+                                                <div class="small text-muted">Monto: <strong>Gs. {{ "{:,.0f}".format(fijo.monto).replace(",", ".") }}</strong> | Cuotas: {{ fijo.cuotas_pagadas }}/{{ fijo.cuotas }}</div>
+                                            </td>
+                                            <td class="text-end pe-4 align-middle">
+                                                <div class="d-inline-flex gap-2">
+                                                    <button class="btn btn-icon btn-light-info" data-bs-toggle="modal" data-bs-target="#modalGastoFijo" onclick="setModalGastoFijo('editar', '{{ fijo.id }}', '{{ fijo.descripcion }}', '{{ fijo.monto }}', '{{ fijo.cuotas }}', '{{ fijo.cuotas_pagadas }}', '{{ fijo.estado }}')"><i class="bi bi-pencil-square"></i></button>
+                                                    <button type="button" class="btn btn-icon btn-light-danger" onclick="eliminarParametrico('FIJOS', '{{ fijo.id }}')"><i class="bi bi-trash3"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTipo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="api-form-parametrico w-100">
+            <input type="hidden" name="origen" value="TIPOS">
+            <input type="hidden" name="accion" id="accionTipo" value="nuevo">
+            <input type="hidden" name="id" id="idTipo" value="">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="titleTipo">Tipo de Movimiento</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Nombre del Tipo</label>
+                        <input type="text" name="tipo" id="inputTipoNombre" class="form-control rounded-3 shadow-none custom-input" required placeholder="Ej: Ingreso Extra">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4 gap-2">
+                    <button type="button" class="btn btn-light px-4 rounded-3 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold shadow-none">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAgrupador" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="api-form-parametrico w-100">
+            <input type="hidden" name="origen" value="AGRUPADORES">
+            <input type="hidden" name="accion" id="accionAgrupador" value="nuevo">
+            <input type="hidden" name="id" id="idAgrupador" value="">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="titleAgrupador">Agrupador de Gastos</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Nombre del Agrupador</label>
+                        <input type="text" name="agrupador" id="inputAgrupadorNombre" class="form-control rounded-3 shadow-none custom-input" required placeholder="Ej: Servicios Básicos">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4 gap-2">
+                    <button type="button" class="btn btn-light px-4 rounded-3 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold shadow-none">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTarjeta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="api-form-parametrico w-100">
+            <input type="hidden" name="origen" value="TARJETAS">
+            <input type="hidden" name="accion" id="accionTarjeta" value="nuevo">
+            <input type="hidden" name="id" id="idTarjeta" value="">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="titleTarjeta">Tarjeta de Crédito</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Banco</label>
+                            <input type="text" name="banco" id="inputTarjetaBanco" class="form-control rounded-3 shadow-none custom-input" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Últimos 4 dígitos</label>
+                            <input type="text" name="numero" id="inputTarjetaNumero" class="form-control rounded-3 shadow-none custom-input fw-mono" maxlength="4" required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Vencimiento</label>
+                            <input type="text" name="vencimiento" id="inputTarjetaVencimiento" class="form-control rounded-3 shadow-none custom-input" placeholder="MM/AA" required>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end justify-content-start pb-2 ps-3">
+                            <div class="form-check form-switch custom-switch">
+                                <input type="checkbox" id="inputTarjetaEstado" class="form-check-input shadow-none" checked>
+                                <input type="hidden" name="estado" id="hiddenTarjetaEstado" value="true">
+                                <label class="form-check-label text-dark small fw-semibold ms-2" for="inputTarjetaEstado">Tarjeta Activa</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4 gap-2">
+                    <button type="button" class="btn btn-light px-4 rounded-3 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold shadow-none">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="modalGastoFijo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="api-form-parametrico w-100">
+            <input type="hidden" name="origen" value="FIJOS">
+            <input type="hidden" name="accion" id="accionFijo" value="nuevo">
+            <input type="hidden" name="id" id="idFijo" value="">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="titleGastoFijo">Gasto Pendiente / Fijo</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Descripción</label>
+                        <input type="text" name="descripcion" id="inputFijoDescripcion" class="form-control rounded-3 shadow-none custom-input" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Monto (Gs.)</label>
+                            <input type="number" name="monto" id="inputFijoMonto" class="form-control rounded-3 shadow-none custom-input" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-secondary small fw-semibold">Totales</label>
+                            <input type="number" name="cuotas" id="inputFijoCuotas" class="form-control rounded-3 shadow-none custom-input" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-secondary small fw-semibold">Pagadas</label>
+                            <input type="number" name="cuotas_pagadas" id="inputFijoPagadas" class="form-control rounded-3 shadow-none custom-input" min="0" required>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch d-flex justify-content-start align-items-center mb-2 mt-3">
+                        <input type="checkbox" id="inputFijoEstado" class="form-check-input shadow-none me-2" checked>
+                        <input type="hidden" name="estado" id="hiddenFijoEstado" value="true">
+                        <label class="form-check-label text-dark small fw-semibold" for="inputFijoEstado">Estado Activo</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4 gap-2">
+                    <button type="button" class="btn btn-light px-4 rounded-3 fw-semibold" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold shadow-none">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Sincronizar dinámicamente el valor booleano de los Switches de Bootstrap con su Input Hidden antes del Submit
+    $('#inputTarjetaEstado').on('change', function() { $('#hiddenTarjetaEstado').val($(this).is(':checked') ? 'true' : 'false'); });
+    $('#inputFijoEstado').on('change', function() { $('#hiddenFijoEstado').val($(this).is(':checked') ? 'true' : 'false'); });
+
+    // Interceptor Global de Formularios para Modales mediante AJAX
+    $('.api-form-parametrico').on('submit', function(e) {
+        e.preventDefault();
+        const $form = $(this);
+        const dataFormData = $form.serialize();
+
+        $.ajax({
+            url: "/api/parametrico/guardar",
+            type: "POST",
+            data: dataFormData,
+            success: function(response) {
+                if (response.success) {
+                    // Cerrar el modal actual de forma limpia utilizando Bootstrap API
+                    const modalEl = $form.closest('.modal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl[0]);
+                    if (modalInstance) modalInstance.hide();
+                    
+                    // Recargar suavemente la página para refrescar los datos inyectados por Jinja
+                    window.location.reload();
+                } else {
+                    alert("Error de validación: " + response.error);
+                }
+            },
+            error: function(xhr) {
+                const err = xhr.responseJSON ? xhr.responseJSON.error : "Ocurrió un error inesperado en el servidor.";
+                alert("Error crítico: " + err);
+            }
+        });
+    });
+
+    // Operación asíncrona DELETE utilizando JSON Payload puro
+    function eliminarParametrico(origen, id) {
+        if (!confirm(`¿Está seguro de que desea eliminar este registro en ${origen}?`)) return;
+
+        $.ajax({
+            url: "/api/parametrico/eliminar",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ origen: origen, id: id }),
+            success: function(response) {
+                if (response.success) {
+                    // Animación suave de remoción de fila en el DOM sin recargar la página entera
+                    $(`#row-${origen}-${id}`).fadeOut(400, function() {
+                        $(this).remove();
+                    });
+                } else {
+                    alert("No se pudo eliminar: " + response.error);
+                }
+            },
+            error: function(xhr) {
+                alert("Error en el servidor al intentar eliminar.");
+            }
+        });
+    }
+
+    // Funciones de mapeo de Modales (Preservadas intactas)
+    function setModalTipo(modo, id='', nombre='') {
+        document.getElementById('accionTipo').value = modo;
+        document.getElementById('idTipo').value = id;
+        document.getElementById('inputTipoNombre').value = nombre;
+        document.getElementById('titleTipo').innerText = modo === 'nuevo' ? 'Agregar Tipo de Movimiento' : 'Modificar Tipo de Movimiento';
+    }
+    function setModalAgrupador(modo, id='', nombre='') {
+        document.getElementById('accionAgrupador').value = modo;
+        document.getElementById('idAgrupador').value = id;
+        document.getElementById('inputAgrupadorNombre').value = nombre;
+        document.getElementById('titleAgrupador').innerText = modo === 'nuevo' ? 'Agregar Nuevo Agrupador' : 'Modificar Agrupador';
+    }
+    function setModalTarjeta(modo, id='', banco='', numero='', vencimiento='', estado='') {
+        document.getElementById('accionTarjeta').value = modo;
+        document.getElementById('idTarjeta').value = id;
+        document.getElementById('inputTarjetaBanco').value = banco;
+        document.getElementById('inputTarjetaNumero').value = numero;
+        document.getElementById('inputTarjetaVencimiento').value = vencimiento;
+        const isTrue = (modo === 'nuevo' || estado === 'True');
+        document.getElementById('inputTarjetaEstado').checked = isTrue;
+        document.getElementById('hiddenTarjetaEstado').value = isTrue ? 'true' : 'false';
+        document.getElementById('titleTarjeta').innerText = modo === 'nuevo' ? 'Registrar Nueva Tarjeta' : 'Modificar Tarjeta';
+    }
+    function setModalGastoFijo(modo, id='', descripcion='', monto='', cuotas='', pagadas='', estado='') {
+        document.getElementById('accionFijo').value = modo;
+        document.getElementById('idFijo').value = id;
+        document.getElementById('inputFijoDescripcion').value = descripcion;
+        document.getElementById('inputFijoMonto').value = monto;
+        document.getElementById('inputFijoCuotas').value = modo === 'nuevo' ? 0 : cuotas;
+        document.getElementById('inputFijoPagadas').value = modo === 'nuevo' ? 0 : pagadas;
+        const isTrue = (modo === 'nuevo' || estado === 'True');
+        document.getElementById('inputFijoEstado').checked = isTrue;
+        document.getElementById('hiddenFijoEstado').value = isTrue ? 'true' : 'false';
+        document.getElementById('titleGastoFijo').innerText = modo === 'nuevo' ? 'Registrar Gasto Fijo' : 'Modificar Gasto Fijo';
+    }
+</script>
+
+<style>
+    /* Estilos Soft-UI preservados */
+    .rounded-4 { border-radius: 1rem !important; }
+    .rounded-top-4 { border-top-left-radius: 1rem !important; border-top-right-radius: 1rem !important; }
+    .bg-primary-soft { background-color: rgba(13, 110, 253, 0.1) !important; }
+    .bg-warning-soft { background-color: rgba(25, 135, 84, 0.1) !important; }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.15) !important; }
+    .bg-success-soft { background-color: rgba(25, 135, 84, 0.1) !important; }
+    .fw-mono { font-family: monospace; }
+    .font-size-xs { font-size: 0.785rem; }
+    .font-size-md { font-size: 0.92rem; }
+    .py-3 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+    .custom-nav-pills .nav-link { color: #495057; transition: all 0.2s ease; border: 1px solid transparent !important; }
+    .custom-nav-pills .nav-link:hover { background-color: #f1f3f5; color: #212529; }
+    .custom-nav-pills .nav-link.active { background-color: #fff !important; color: #0d6efd !important; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important; border-color: #dee2e6 !important; }
+    .nav-icon-box { width: 34px; height: 34px; flex-shrink: 0; }
+    .custom-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: #8a94a6; border-bottom: 1px solid #edf2f9; padding: 12px; }
+    .table-light-header { background-color: #f9fbfd; }
+    .custom-table td { border-bottom: 1px solid #edf2f9; padding: 14px 12px; }
+    .btn-icon { width: 32px !important; height: 32px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important; border: none; font-size: 0.85rem; }
+    .btn-light-info { color: #0dcaf0; background-color: rgba(13, 202, 240, 0.1); }
+    .btn-light-info:hover { color: #fff; background-color: #0dcaf0; }
+    .btn-light-danger { color: #dc3545; background-color: rgba(220, 53, 69, 0.1); }
+    .btn-light-danger:hover { color: #fff; background-color: #dc3545; }
+</style>
+{% endblock %}

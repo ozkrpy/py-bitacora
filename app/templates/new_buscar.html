@@ -1,0 +1,140 @@
+{% extends "new_base.html" %} 
+
+{% block content %}
+<div class="container py-4">
+    
+    <div class="row mb-4 justify-content-center">
+        <div class="col-md-8 text-center">
+            <h2 class="fw-bold text-dark mb-3">
+                <i class="bi bi-search text-success me-2"></i>Buscador Global
+            </h2>
+            <form action="{{ url_for('buscar_movimientos') }}" method="GET" class="shadow-sm rounded-3 overflow-hidden border border-light-subtle">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control form-control-lg border-0 ps-4 bg-white" 
+                           placeholder="Buscar por descripción (ej. Supermercado, Netflix...)" 
+                           value="{{ query }}">
+                    <button class="btn btn-success px-4 py-2 fw-bold d-flex align-items-center gap-2" type="submit">
+                        <i class="bi bi-search fs-5"></i>
+                        Buscar
+                    </button>
+                </div>
+            </form>
+            {% if query %}
+                <p class="text-muted mt-2 small">Resultados para: <span class="fw-bold text-secondary">"{{ query }}"</span></p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if query %}
+    <div class="row g-4">
+        
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 bg-white rounded-3 h-100">
+                <div class="card-header bg-light border-bottom-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark fs-5">
+                        <i class="bi bi-wallet2 text-primary me-2"></i>Gastos Fijos (Expenses)
+                    </span>
+                    <span class="badge bg-primary rounded-pill px-3">{{ resultados_gastos|length }}</span>
+                </div>
+                <div class="card-body p-3">
+                    {% if resultados_gastos %}
+                        <div class="list-group list-group-flush">
+                            {% for gasto in resultados_gastos %}
+                                <div class="list-group-item py-3 border-0 border-bottom border-light-subtle d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-dark">{{ gasto.descripcion }}</h6>
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="bi bi-calendar-event me-1"></i>Vence: {{ gasto.fecha_pagar.strftime('%d/%m/%Y') }}
+                                        </small>
+                                        {% if gasto.pagado %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-1 px-2 small-badge">Pagado</span>
+                                        {% else %}
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-1 px-2 small-badge">Pendiente</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fs-5 fw-bold text-dark">
+                                            ${{ "{:,.0f}".format(gasto.monto) }}
+                                        </span>
+                                        <small class="d-block text-muted mt-1">
+                                            {{ gasto.agrupador_gastos.nombre if gasto.agrupador_gastos else 'Sin Agrupador' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-exclamation-circle fs-2 opacity-50 mb-2 d-block"></i>
+                            <p class="small mb-0">No se encontraron gastos fijos con esa descripción.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 bg-white rounded-3 h-100">
+                <div class="card-header bg-light border-bottom-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark fs-5">
+                        <i class="bi bi-credit-card text-info me-2"></i>Movimientos de Tarjeta
+                    </span>
+                    <span class="badge bg-info text-white rounded-pill px-3">{{ resultados_tarjetas|length }}</span>
+                </div>
+                <div class="card-body p-3">
+                    {% if resultados_tarjetas %}
+                        <div class="list-group list-group-flush">
+                            {% for mov in resultados_tarjetas %}
+                                <div class="list-group-item py-3 border-0 border-bottom border-light-subtle d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-dark">{{ mov.descripcion }}</h6>
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="bi bi-calendar3 me-1"></i>Op: {{ mov.fecha_operacion.strftime('%d/%m/%Y') }}
+                                        </small>
+                                        <span class="badge bg-light text-secondary border border-light-subtle rounded-pill py-1 px-2 small-badge">
+                                            <i class="bi bi-credit-card-2-back me-1"></i>{{ mov.tarjeta.banco if mov.tarjeta else 'S/T' }}
+                                        </span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fs-5 fw-bold text-danger">
+                                            ${{ "{:,.0f}".format(mov.monto_operacion) }}
+                                        </span>
+                                        <small class="d-block text-muted mt-1">
+                                            {{ mov.tipo_movimiento.nombre if mov.tipo_movimiento else 'General' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-exclamation-circle fs-2 opacity-50 mb-2 d-block"></i>
+                            <p class="small mb-0">No se encontraron consumos de tarjeta con esa descripción.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% else %}
+    <div class="row mt-5 justify-content-center">
+        <div class="col-md-6 text-center text-muted opacity-75">
+            <i class="bi bi-search-heart display-1 text-light mb-3 d-block"></i>
+            <p>Ingresa palabras clave arriba para rastrear montos e historiales guardados en tu base de datos.</p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+    /* Detalles estéticos para la bitácora */
+    .small-badge {
+        font-size: 0.725rem;
+    }
+    .form-control:focus {
+        box-shadow: none;
+    }
+</style>
+{% endblock %}

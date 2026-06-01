@@ -1,0 +1,156 @@
+{% extends "new_base.html" %}
+
+{% block style %}
+    <style>
+    /* Indicar que la fila completa es interactiva */
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    /* Rotación suave del ícono chevron al abrir el colapsable */
+    tr[aria-expanded="true"] .bi-chevron-right {
+        transform: rotate(90deg);
+        transition: transform 0.2s ease-in-out;
+        color: var(--bs-primary) !important;
+    }
+    
+    .bi-chevron-right {
+        display: inline-block;
+        transition: transform 0.2s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 bg-light min-vh-100">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('reporte_anual') }}" class="text-decoration-none text-muted">Reporte Anual</a></li>
+                    <li class="breadcrumb-item active fw-semibold text-primary" aria-current="page">Meses de {{ anno }}</li>
+                </ol>
+            </nav>
+            <h2 class="h4 mb-0 text-dark fw-bold">Desglose Mensual — Año {{ anno }}</h2>
+        </div>
+        <a href="{{ url_for('reporte_anual') }}" class="btn btn-outline-secondary btn-sm rounded-3">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Anual
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-0 pt-4">
+            <h5 class="m-0 fw-bold text-secondary text-uppercase tracking-wider small">Evolución de Movimientos por Mes</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Mes</th>
+                        <th class="text-end">Deuda Total</th>
+                        <th class="text-end">Pagos</th>
+                        <th class="text-end">Descuentos</th>
+                        <th class="text-end pe-4">Balance Neto</th>
+                    </tr>
+                </thead>
+                hola
+                <tbody>
+                    {% for registro in reporte %}
+                    
+                    <tr class="cursor-pointer" data-bs-toggle="collapse" data-bs-target="#collapse-mes-{{ registro.mes_id }}" aria-expanded="false" aria-controls="collapse-mes-{{ registro.mes_id }}">
+                        <td class="ps-4 fw-bold">
+                            <i class="bi bi-chevron-right me-2 text-muted small-icon-transition"></i>
+                            {{ registro.mes_nombre }}
+                        </td>
+                        <td class="text-end fw-mono text-secondary">Gs. {{ "{:,.0f}".format(registro.total_deuda).replace(",", ".") }}</td>
+                        <td class="text-end fw-mono text-success">Gs. {{ "{:,.0f}".format(registro.total_pagos).replace(",", ".") }}</td>
+                        <td class="text-end fw-mono text-info">Gs. {{ "{:,.0f}".format(registro.total_descuentos).replace(",", ".") }}</td>
+                        
+                        <td class="text-end pe-4 align-middle">
+                            {% if registro.neto > 0 %}
+                                <span class="d-block fw-bold text-dark fw-mono fs-5">Gs. {{ "{:,.0f}".format(registro.neto).replace(",", ".") }}</span>
+                                <small class="text-danger font-size-xs"><i class="bi bi-arrow-up-right me-1"></i>Saldo en contra</small>
+                            {% elif registro.neto < 0 %}
+                                <span class="d-block fw-bold text-success fw-mono fs-5">Gs. {{ "{:,.0f}".format(registro.neto | abs).replace(",", ".") }}</span>
+                                <small class="text-success font-size-xs"><i class="bi bi-arrow-down-left me-1"></i>Saldo a favor / Superávit</small>
+                            {% else %}
+                                <span class="d-block fw-bold text-muted fw-mono fs-5">Gs. 0</span>
+                                <small class="text-muted font-size-xs"><i class="bi bi-check-circle me-1"></i>Cuentas liquidadas</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <tr class="p-0">
+                        <td colspan="5" class="p-0 border-0">
+                            <div class="collapse bg-light" id="collapse-mes-{{ registro.mes_id }}">
+                                <div class="px-5 py-3">
+                                    <h6 class="text-uppercase text-muted fs-7 fw-bold mb-3">
+                                        <i class="bi bi-pie-chart-fill me-2"></i>Distribución de Gastos del Mes
+                                    </h6>
+                                    
+                                    {% if registro.desglose %}
+                                    <div class="row g-2">
+                                        {% for item in registro.desglose %}
+                                        <div class="col-md-6 col-xl-4">
+                                            <div class="card card-body border shadow-none p-3 d-flex flex-row justify-content-between align-items-center bg-white rounded-3">
+                                                <!-- <div>
+                                                    <span class="fs-6 fw-semibold text-dark">{{ item.tipo_nombre }}</span>
+                                                </div> -->
+                                                <div>
+                                                    {% if item.tipo_nombre == "Descuento" %}
+                                                        <i class="bi bi-percent  me-2 text-success small-icon-transition"></i>
+                                                        <span class="fs-6 fw-semibold text-success">{{ item.tipo_nombre }}</span>
+                                                    {% elif item.tipo_nombre == "Pago" %}
+                                                        <i class="bi bi-bank me-2 text-success small-icon-transition"></i>
+                                                        <span class="fs-6 fw-semibold text-success">{{ item.tipo_nombre }}</span>
+                                                    {% else %}
+                                                        <i class="bi bi-clipboard-data me-2 text-muted small-icon-transition"></i>
+                                                        <span class="fs-6 fw-semibold text-dark">{{ item.tipo_nombre }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <!-- <div class="text-end">
+                                                    <span class="fw-mono fw-bold text-danger">Gs. {{ "{:,.0f}".format(item.subtotal).replace(",", ".") }}</span>
+                                                </div> -->
+                                                <div>
+                                                    {% if item.tipo_nombre == "Descuento" %}
+                                                        <span class="fw-mono fw-bold text-success">Gs. {{ "{:,.0f}".format(item.subtotal).replace(",", ".") }}</span>
+                                                    {% elif item.tipo_nombre == "Pago" %}
+                                                        <span class="fw-mono fw-bold text-success">Gs. {{ "{:,.0f}".format(item.subtotal).replace(",", ".") }}</span>
+                                                    {% else %}
+                                                        <span class="fw-mono fw-bold text-danger">Gs. {{ "{:,.0f}".format(item.subtotal).replace(",", ".") }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted fs-6 mb-0 py-2"><i class="bi bi-info-circle me-2"></i>No se registraron gastos parametrizados en este mes.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-table th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+        color: #8a94a6;
+        border-bottom: 1px solid #edf2f9;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    .table-light-header { background-color: #f9fbfd; }
+    .custom-table td { border-top: none; border-bottom: 1px solid #edf2f9; padding-top: 14px; padding-bottom: 14px; }
+    .tracking-wider { letter-spacing: 0.08em; }
+</style>
+{% endblock %}

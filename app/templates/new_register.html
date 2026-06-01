@@ -1,0 +1,104 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 85vh; padding-top: 2rem; padding-bottom: 2rem;">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5">
+        
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="card-body p-5">
+                
+                <div class="text-center mb-4">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 72px; height: 72px;">
+                        <i class="bi bi-person-plus-fill fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-1">Crea tu Cuenta</h3>
+                    <p class="text-muted small">Únete y toma el control de tus finanzas</p>
+                </div>
+
+                <form action="" method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.username.id }}" class="form-label fw-semibold text-secondary small">
+                            <i class="bi bi-person-fill me-1 text-primary"></i>{{ form.username.label.text }}
+                        </label>
+                        {{ form.username(class="form-control form-control-lg bg-light-subtle border-light-subtle fs-6", placeholder="Elige un nombre de usuario", autofocus=True) }}
+                        
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1 px-2 fw-medium">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.email.id }}" class="form-label fw-semibold text-secondary small">
+                            <i class="bi bi-envelope-fill me-1 text-primary"></i>{{ form.email.label.text }}
+                        </label>
+                        {{ form.email(class="form-control form-control-lg bg-light-subtle border-light-subtle fs-6", placeholder="tu@email.com") }}
+                        
+                        {% for error in form.email.errors %}
+                            <div class="text-danger small mt-1 px-2 fw-medium">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.password.id }}" class="form-label fw-semibold text-secondary small">
+                            <i class="bi bi-key-fill me-1 text-primary"></i>{{ form.password.label.text }}
+                        </label>
+                        {{ form.password(class="form-control form-control-lg bg-light-subtle border-light-subtle fs-6", placeholder="Crea una contraseña segura") }}
+                        
+                        {% for error in form.password.errors %}
+                            <div class="text-danger small mt-1 px-2 fw-medium">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.password2.id }}" class="form-label fw-semibold text-secondary small">
+                            <i class="bi bi-check-circle-fill me-1 text-primary"></i>{{ form.password2.label.text }}
+                        </label>
+                        {{ form.password2(class="form-control form-control-lg bg-light-subtle border-light-subtle fs-6", placeholder="Confirma tu contraseña") }}
+                        
+                        {% for error in form.password2.errors %}
+                            <div class="text-danger small mt-1 px-2 fw-medium">
+                                <i class="bi bi-exclamation-circle me-1"></i>{{ error }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 mb-4">
+                        {{ form.submit(class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm py-2") }}
+                    </div>
+
+                    <div class="text-center pt-3 border-top border-light-subtle">
+                        <p class="text-muted small mb-0">
+                            ¿Ya tienes una cuenta? 
+                            <a href="{{ url_for('login') }}" class="text-decoration-none fw-bold text-primary ms-1 transition-all">
+                                ¡Inicia sesión aquí!
+                            </a>
+                        </p>
+                    </div>  
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Suaves transiciones para inputs y enlaces */
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
+    .form-control:focus {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+        background-color: #fff !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    .custom-table th {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+        color: #8a94a6;
+        border-bottom: 1px solid #edf2f9;
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+    .table-light-header { background-color: #f9fbfd; }
+    .custom-table td { border-top: none; border-bottom: 1px solid #edf2f9; padding-top: 16px; padding-bottom: 16px; }
+    .fw-mono { font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+</style>
+
+<div class="container-fluid py-4 bg-light min-vh-100">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 mb-1 text-dark fw-bold">Reporte Macroeconómico Anual</h2>
+            <p class="text-muted small mb-0">Evolución e historial consolidado de obligaciones, abonos y balances acumulados por año.</p>
+        </div>
+        <div>
+            <button class="btn btn-white text-secondary border shadow-sm px-3 rounded-3 fw-semibold small" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Imprimir Reporte
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white py-4 border-0 rounded-top-4">
+            <h5 class="m-0 fw-bold text-dark">Historial de Saldos por Periodo</h5>
+        </div>
+        <div class="card-body px-0 pt-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead>
+                        <tr class="table-light-header">
+                            <th class="ps-4" style="width: 15%">Año</th>
+                            <th class="text-end">Deuda Bruta (Gastos)</th>
+                            <th class="text-end">Pagos Realizados</th>
+                            <th class="text-end">Descuentos Obtenidos</th>
+                            <th class="text-end pe-4" style="width: 25%">Balance Pendiente Neto</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if datos_anuales %}
+                            {% for registro in datos_anuales %}
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-dark px-3 py-2 rounded-3 fs-6 fw-bold shadow-none">{{ registro.anno }}</span>
+                                </td>
+                                <td class="text-end fw-semibold text-danger fw-mono">
+                                    Gs. {{ "{:,.0f}".format(registro.deuda).replace(",", ".") }}
+                                </td>
+                                <td class="text-end fw-semibold text-success fw-mono">
+                                    Gs. {{ "{:,.0f}".format(registro.pagos).replace(",", ".") }}
+                                </td>
+                                <td class="text-end fw-semibold text-info fw-mono">
+                                    Gs. {{ "{:,.0f}".format(registro.descuentos).replace(",", ".") }}
+                                </td>
+                                <td class="text-end pe-4 align-middle">
+                                    {% if registro.neto > 0 %}
+                                        <span class="d-block fw-bold text-dark fw-mono fs-5">Gs. {{ "{:,.0f}".format(registro.neto).replace(",", ".") }}</span>
+                                        <small class="text-danger font-size-xs"><i class="bi bi-arrow-up-right me-1"></i>Saldo en contra</small>
+                                    {% elif registro.neto < 0 %}
+                                        <span class="d-block fw-bold text-success fw-mono fs-5">Gs. {{ "{:,.0f}".format(registro.neto | abs).replace(",", ".") }}</span>
+                                        <small class="text-success font-size-xs"><i class="bi bi-arrow-down-left me-1"></i>Saldo a favor / Superávit</small>
+                                    {% else %}
+                                        <span class="d-block fw-bold text-muted fw-mono fs-5">Gs. 0</span>
+                                        <small class="text-muted font-size-xs"><i class="bi bi-check-circle me-1"></i>Cuentas liquidadas</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4 align-middle">
+                                    <a href="{{ url_for('reporte_mensual', anno=registro.anno) }}" class="btn btn-sm btn-light border rounded-3 px-3">
+                                        Mes a mes <i class="bi bi-clock-history ms-1 small"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exceder-card fs-2 d-block mb-2 text-light"></i>
+                                    No se encontraron movimientos registrados en el sistema para procesar el reporte anual.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

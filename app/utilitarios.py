@@ -139,8 +139,6 @@ def precarga_deudas(mes: str):
         
         g = GastosFijos(date=datetime.utcnow(), fecha_pagar=fecha_generacion, descripcion=deuda.descripcion+"("+str(deuda.cuotas_pagadas)+"/"+str(deuda.cuotas)+")", monto=deuda.monto, operacion=operacion, pagado=descontado, id_agrupador_gastos=deuda.id_agrupador)
         
-        print(g)
-
         dbmodel.session.add(g)
         dbmodel.session.commit()
     return True
