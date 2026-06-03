@@ -138,9 +138,6 @@
                                                             onclick="setModalTarjeta('editar', '{{ tarjeta.id }}', '{{ tarjeta.banco }}', '{{ tarjeta.numero }}', '{{ tarjeta.vencimiento }}', '{{ tarjeta.estado }}')">
                                                         <i class="bi bi-pencil-square"></i>
                                                     </button>
-                                                    <!-- <a href="{{ url_for('borrar_tarjeta', tarjeta_id=tarjeta.id) }}" class="btn btn-icon btn-light-danger" onclick="return confirm('¿Eliminar tarjeta?');">
-                                                        <i class="bi bi-trash3"></i>
-                                                    </a> -->
                                                     <button type="button" class="btn btn-icon btn-light-danger" onclick="eliminarParametrico('TARJETAS', '{{ tarjeta.id }}')"><i class="bi bi-trash3"></i></button>
                                                 </div>
                                             </td>
@@ -168,8 +165,14 @@
                                         {% set es_pagado = fijo.estado and fijo.cuotas_pagadas >= fijo.cuotas and fijo.cuotas > 0 %}
                                         <tr id="row-FIJOS-{{ fijo.id }}" class="{{ 'bg-light-success-row' if es_pagado else ('opacity-60' if not fijo.estado else '') }}">
                                             <td class="ps-4 py-3">
+                                                
                                                 <span class="fw-bold text-dark d-block mb-1">{{ fijo.descripcion }}</span>
-                                                <div class="small text-muted">Monto: <strong>Gs. {{ "{:,.0f}".format(fijo.monto).replace(",", ".") }}</strong> | Cuotas: {{ fijo.cuotas_pagadas }}/{{ fijo.cuotas }}</div>
+                                                <div class="small text-muted">
+                                                    Monto: <strong>Gs. {{ "{:,.0f}".format(fijo.monto).replace(",", ".") }}</strong> | Cuotas: {{ fijo.cuotas_pagadas }}/{{ fijo.cuotas }} 
+                                                    {% if not fijo.estado %}
+                                                    <span class="badge bg-warning ms-2 rounded-pill font-size-xs">Inactiva</span>
+                                                    {% endif %}
+                                                </div>
                                             </td>
                                             <td class="text-end pe-4 align-middle">
                                                 <div class="d-inline-flex gap-2">

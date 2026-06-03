@@ -1,0 +1,135 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-0"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Distribución de Gastos</h4>
+                        <p class="text-muted small mb-0">Dinero invertido clasificado por categoría.</p>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <label for="filtroAnno" class="form-label text-muted small fw-bold me-2 mb-0">Periodo:</label>
+                        <select id="filtroAnno" class="form-select form-select-sm border-light-subtle bg-light-subtle fw-semibold" style="width: auto;">
+                            <option value="all">Histórico Completo</option>
+                            {% for anno in anios %}
+                                <option value="{{ anno }}">Año {{ anno }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-body position-relative d-flex justify-content-center">
+                    <div id="loadingChart" class="position-absolute top-50 start-50 translate-middle" style="display: none; z-index: 10;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+                    
+                    <div style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="historicoDoughnutChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let myDoughnutChart = null; // Variable global para almacenar la instancia de la gráfica
+
+$(document).ready(function() {
+    // 1. Inicializar cargando el historial completo por defecto
+    cargarGrafica('all');
+
+    // 2. Escuchar cambios en el menú desplegable
+    $('#filtroAnno').on('change', function() {
+        const annoSeleccionado = $(this).val();
+        cargarGrafica(annoSeleccionado);
+    });
+});
+
+function cargarGrafica(anno) {
+    $('#loadingChart').fadeIn(150); // Mostrar spinner
+    
+    $.ajax({
+        url: '/api/reporte/grafica-categorias',
+        method: 'GET',
+        data: { anno: anno },
+        success: function(response) {
+            $('#loadingChart').fadeOut(150); // Ocultar spinner
+
+            if (response.success) {
+                renderizarOActualizarChart(response.etiquetas, response.valores);
+            } else {
+                alert("Error al obtener los datos de la gráfica.");
+            }
+        },
+        error: function() {
+            $('#loadingChart').fadeOut(150);
+            alert("Error de conexión con el servidor.");
+        }
+    });
+}
+
+function renderizarOActualizarChart(labels, data) {
+    const ctx = document.getElementById('historicoDoughnutChart').getContext('2d');
+
+    // Paleta de colores Soft-UI
+    const brandColors = [
+        '#0d6efd', '#6610f2', '#6f42c1', '#d63384', 
+        '#dc3545', '#fd7e14', '#ffc107', '#198754', 
+        '#20c997', '#0dcaf0'
+    ];
+
+    // Si la gráfica ya existe, solo actualizamos sus datos (esto activa la animación fluida de Chart.js)
+    if (myDoughnutChart != null) {
+        myDoughnutChart.data.labels = labels;
+        myDoughnutChart.data.datasets[0].data = data;
+        myDoughnutChart.update(); 
+    } else {
+        // Si no existe, la creamos desde cero
+        myDoughnutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: brandColors,
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, font: { family: "system-ui", size: 13 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let valorFormatted = new Intl.NumberFormat('de-DE').format(context.raw);
+                                return ` Gs. ${valorFormatted}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

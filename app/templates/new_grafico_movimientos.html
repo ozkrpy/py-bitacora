@@ -1,0 +1,192 @@
+{% extends "new_base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm rounded-4">
+                
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-bar-chart-steps text-primary me-2"></i>Composición de Deuda Mensual
+                        </h4>
+                        <p class="text-muted small mb-0">Evolución de consumos regulares vs. pagos y descuentos aplicados.</p>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <label for="filtroAnno" class="form-label text-muted small fw-bold me-2 mb-0">Periodo:</label>
+                        <select id="filtroAnno" class="form-select form-select-sm border-light-subtle bg-light-subtle fw-semibold" style="width: auto;">
+                            {% set current_year = now.year | string if now else "2026" %}
+                            <option value="all">Histórico Completo</option>
+                            {% for anno in anios %}
+                                <option value="{{ anno }}" {% if anno == current_year %}selected{% endif %}>Año {{ anno }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body position-relative d-flex justify-content-center" style="min-height: 420px; padding: 20px;">
+                    <div id="loadingStackedChart" class="position-absolute top-50 start-50 translate-middle" style="z-index: 10;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Procesando datos...</span>
+                        </div>
+                    </div>
+                    
+                    <div id="chartContainer" style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="stackedDeudaChart"></canvas>
+                    </div>
+
+                    <div id="emptyChartMessage" class="text-center text-muted position-absolute top-50 start-50 translate-middle" style="display: none; width: 100%;">
+                        <i class="bi bi-wallet2 display-4 d-block mb-3 opacity-50"></i>
+                        <p>No hay datos registrados en este periodo.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let stackedChartInstancia = null; // Variable global para destruir la gráfica antes de re-dibujar
+
+$(document).ready(function() {
+    // Carga inicial usando el valor seleccionado en el dropdown
+    cargarDatosGrafico($('#filtroAnno').val());
+    console.log("Página cargada, iniciando carga de datos para la gráfica de composición de deuda...");
+    
+    // Listener interactivo para el filtro
+    $('#filtroAnno').on('change', function() {
+        $('#loadingStackedChart').fadeIn(100);
+        cargarDatosGrafico($(this).val());
+    });
+});
+
+function cargarDatosGrafico(anno_seleccionado) {
+    $.ajax({
+        url: '/api/reporte/grafica-composicion-deuda',
+        method: 'GET',
+        data: { anno: anno_seleccionado }, // Enviamos el parámetro 'anno'
+        dataType: 'json',
+        success: function(response) {
+            $('#loadingStackedChart').fadeOut(200);
+            
+            if (response.success && response.labels.length > 0) {
+                renderizarGraficoApilado(response.labels, response.consumos, response.pagos, response.descuentos);
+            } else {
+                mostrarMensajeVacio();
+            }
+        },
+        error: function() {
+            $('#loadingStackedChart').fadeOut(200);
+            alert("Error de conexión al cargar la gráfica de composición de deuda.");
+        }
+    });
+}
+
+function renderizarGraficoApilado(labels, consumos, pagos, descuentos) {
+    // 1. Aseguramos que el contenedor del gráfico esté visible y el mensaje vacío oculto
+    $('#emptyChartMessage').hide();
+    $('#chartContainer').show();
+
+    const ctx = document.getElementById('stackedDeudaChart').getContext('2d');
+    
+    if (stackedChartInstancia) {
+        stackedChartInstancia.destroy();
+    }
+
+    stackedChartInstancia = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Consumos Regulares',
+                    data: consumos,
+                    backgroundColor: 'rgba(220, 53, 69, 0.85)',
+                    borderRadius: 4,
+                    maxBarThickness: 45 // Evita que la barra sea excesivamente ancha
+                },
+                {
+                    label: 'Pagos Realizados',
+                    data: pagos,
+                    backgroundColor: 'rgba(25, 135, 84, 0.85)',
+                    borderRadius: 4,
+                    maxBarThickness: 45 // Evita que la barra sea excesivamente ancha
+                },
+                {
+                    label: 'Descuentos',
+                    data: descuentos,
+                    backgroundColor: 'rgba(13, 202, 240, 0.85)',
+                    borderRadius: 4,
+                    maxBarThickness: 45 // Evita que la barra sea excesivamente ancha
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, // Ahora sí funcionará gracias al height: 400px del padre
+            layout: {
+                padding: { top: 10, bottom: 10 } // Da respiro al gráfico
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    grace: '10%', // Da un 10% de espacio extra arriba de la barra más alta
+                    grid: { color: 'rgba(0, 0, 0, 0.05)', borderDash: [5, 5] },
+                    border: { display: false }
+                }
+            },
+            plugins: {
+                legend: { position: 'top', labels: { font: { family: "system-ui" }, padding: 20 } },
+                tooltip: {
+                    backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            let valorFormateado = new Intl.NumberFormat('de-DE').format(context.raw);
+                            return ` ${context.dataset.label}: Gs. ${valorFormateado}`;
+                        },
+                        footer: function(tooltipItems) {
+                            let index = tooltipItems[0].dataIndex;
+                            let datasets = tooltipItems[0].chart.data.datasets;
+                            
+                            let valConsumos = datasets[0].data[index] || 0;
+                            let valPagos = datasets[1].data[index] || 0;
+                            let valDescuentos = datasets[2].data[index] || 0;
+                            
+                            let saldoNeto = valConsumos - valPagos - valDescuentos;
+                            let saldoFormateado = new Intl.NumberFormat('de-DE').format(saldoNeto);
+                            
+                            return '\nSaldo Neto: Gs. ' + saldoFormateado;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function mostrarMensajeVacio() {
+    if (stackedChartInstancia) {
+        stackedChartInstancia.destroy();
+    }
+    // 2. Ocultamos el contenedor del gráfico y mostramos el mensaje de vacío
+    $('#chartContainer').hide();
+    $('#emptyChartMessage').fadeIn(200);
+}
+</script>
+{% endblock %}

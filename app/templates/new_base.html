@@ -146,11 +146,26 @@
                             <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('parametrico') }}"><i class="bi bi-gear me-2"></i>Ajustes</a></li>
                         </ul>
                     </li>
+
                     <li class="nav-item me-1">
                         <a class="nav-link {% if request.endpoint == 'buscar_movimientos' %}active text-success fw-medium{% endif %}" href="{{ url_for('buscar_movimientos') }}">
                             <i class="bi bi-search me-1"></i> Buscador
                         </a>
                     </li>
+
+                    <li class="nav-item dropdown me-1">
+                        <a class="nav-link dropdown-toggle" href="#" id="graficosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bar-chart me-1"></i> Graficos
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark border-secondary shadow" aria-labelledby="graficosDropdown">
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('grafica_historica_categorias') }}"><i class="bi bi-pie-chart-fill me-2"></i>Transacciones de cuentas</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('grafica_tendencia_combustible') }}"><i class="bi bi-fuel-pump me-2"></i>Tendencia de Consumo de Combustible</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('grafica_composicion_deuda') }}"><i class="bi bi-credit-card me-2"></i>Movimientos de Tarjeta</a></li>
+                            <li><hr class="dropdown-divider border-secondary opacity-25"></li>
+                            <li><a class="dropdown-menu-item dropdown-item px-3 py-2 text-white-50" href="{{ url_for('parametrico') }}"><i class="bi bi-gear me-2"></i>XXXXXX</a></li>
+                        </ul>
+                    </li>
+
                 </ul>
                 {% endif %}
 
