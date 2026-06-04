@@ -57,7 +57,6 @@ let stackedChartInstancia = null; // Variable global para destruir la gráfica a
 $(document).ready(function() {
     // Carga inicial usando el valor seleccionado en el dropdown
     cargarDatosGrafico($('#filtroAnno').val());
-    console.log("Página cargada, iniciando carga de datos para la gráfica de composición de deuda...");
     
     // Listener interactivo para el filtro
     $('#filtroAnno').on('change', function() {

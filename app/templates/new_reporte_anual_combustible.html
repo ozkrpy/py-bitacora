@@ -261,7 +261,6 @@
         $('#edit_precio').val(precio);
         $('#edit_monto_carga').val(monto);
 
-        console.log(`Editando recarga ID ${id}: Fecha ${fecha}, Odómetro ${odometro}, Emblema ${emblema}, Precio ${precio}, Monto ${monto}`);
         
         // Apuntar el formulario a la API/Ruta correspondiente para actualizar
         $('#formEditCombustible').attr('action', `/api/combustible/modificar/${id}`);

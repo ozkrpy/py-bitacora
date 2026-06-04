@@ -1,845 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
-from dateutil.relativedelta import relativedelta
-from flask import jsonify, render_template, flash, redirect, url_for, request, send_from_directory
-from app import app, db
-from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
-from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
-from app.utilitarios import listar_agrupador, balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro, movimientos_anno_tarjeta_balance, movimiento_balances_mes_a_mes
-# from app.parametros import SALARIO_NETO
-from flask_login import current_user, login_user, logout_user, login_required
-from werkzeug.urls import url_parse
-from sqlalchemy import and_, func, desc, case, cast, Float 
-from sqlalchemy.exc import SQLAlchemyError
-import calendar
-from collections import defaultdict
-from zoneinfo import ZoneInfo
-
-
-
-
-@app.route('/favicon.ico')
-def favicon():
-    # Opción A: Si decides meterlo en tu carpeta static en el futuro
-    # return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
-    
-    # Opción B: Devolver una respuesta vacía exitosa (Silencia el error 404 al instante)
-    return '', 204
-
-@app.route('/')
-@app.route('/index', methods=['GET', 'POST'])
-@login_required
-def index():
-    form = FormularioCombustible()
-    cargas = Cargas.query.all()
-    
-    # --- LOGICA DE PESTAÑAS DINÁMICAS (MESES POBLADOS) ---
-    hoy = datetime.now()
-    # Capturamos el mes y año seleccionados desde la URL; por defecto usamos el mes/año actual
-    mes_activo = request.args.get('mes', default=hoy.month, type=int)
-    anno_activo = request.args.get('anno', default=hoy.year, type=int)
-    
-    # Creamos un objeto datetime basado en la selección para recalcular el diccionario de referencias
-    fecha_seleccionada = datetime(anno_activo, mes_activo, 1)
-    
-    # Extraemos todos los periodos únicos (Mes y Año) que tienen registros en GastosFijos
-    periodos_poblados = db.session.query(
-        func.strftime('%Y', GastosFijos.fecha_pagar).label('anno'),
-        func.strftime('%m', GastosFijos.fecha_pagar).label('mes')
-    ).group_by(
-        'anno', 'mes'
-    ).order_by(
-        desc('anno'), desc('mes')  # <--- Cambiado aquí (limpio y nativo)
-    # ).all()
-    ).limit(6).all()  # Limitar a los últimos 12 meses para evitar sobrecargar la interfaz con demasiadas pestañas
-
-    meses_es = {
-        1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
-        7: "Jul", 8: "Ago", 9: "Set", 10: "Oct", 11: "Nov", 12: "Dic"
-    }
-
-    lista_meses_tabs = []
-    for p in periodos_poblados:
-        if p.mes and p.anno: # Asegurar que no vengan nulos
-            m_int = int(p.mes)
-            a_int = int(p.anno)
-            lista_meses_tabs.append({
-                'anno': a_int,
-                'mes': m_int,
-                'label': f"{meses_es[m_int]} {a_int}",
-                'es_activo': (m_int == mes_activo and a_int == anno_activo)
-            })
-
-    # Si la base de datos está vacía, agregamos por lo menos el mes actual
-    if not lista_meses_tabs:
-        lista_meses_tabs.append({
-            'anno': hoy.year, 'mes': hoy.month, 'label': f"{meses_es[hoy.month]} {hoy.year}", 'es_activo': True
-        })
-    # -----------------------------------------------------
-
-    anno = fecha_seleccionada.strftime("%Y")
-    
-    # Modificamos las referencias relativas basadas en la pestaña activa
-    fechas_referencia = {
-        'mes_anterior_2': fecha_seleccionada - relativedelta(months=2), 
-        'mes_anterior': fecha_seleccionada - relativedelta(months=1), 
-        'fecha_actual': fecha_seleccionada,  
-        'mes_siguiente': fecha_seleccionada + relativedelta(months=1), 
-        'mes_siguiente_2': fecha_seleccionada + relativedelta(months=2)
-    }
-    
-    referencias_principales = referencias_vehiculo(cargas)
-    balance_movimientos, balance_mensual = balance_cuenta()
-    
-    # El filtro ahora utiliza dinámicamente el periodo seleccionado por la pestaña
-    periodo_filtro = fecha_seleccionada.strftime('%Y-%m')
-    
-    gastos = db.session.query(
-        AgrupadorGastos.id.label('id_agrupador_gastos'), 
-        AgrupadorGastos.agrupador.label('acreedor'), 
-        func.sum(GastosFijos.monto).label('total')
-    ).join(AgrupadorGastos).group_by(AgrupadorGastos.id, AgrupadorGastos.agrupador).filter(
-        func.strftime("%Y-%m", GastosFijos.fecha_pagar) == periodo_filtro
-    ).all()
-    
-    credito, pendientes, pagadas = calcular_disponibilidad(periodo_filtro)
-    disponibilidad = credito - pagadas
-    balance = balances_tarjetas()
-    
-    id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado == True).first()
-    id_tarjeta_val = id_tarjeta[0] if id_tarjeta else None
-
-    return render_template(
-        'new_home.html',  
-        form=form, 
-        **referencias_principales, 
-        movimientos=balance_mensual, 
-        anno=anno, 
-        fechas_referencia=fechas_referencia, 
-        balance_movimientos=balance_movimientos, 
-        gastos=gastos, 
-        total_gasto=pendientes, 
-        disponibilidad=disponibilidad, 
-        balance=balance, 
-        id_tarjeta=id_tarjeta_val,
-        lista_meses_tabs=lista_meses_tabs, # Enviamos la lista de pestañas a la vista
-        mes_activo=mes_activo,             # Enviamos el mes activo como entero
-        anno_activo=anno_activo            # Enviamos el año activo como entero
-    )
-
-# @app.route('/')
-# @app.route('/index', methods=['GET', 'POST'])
-# @login_required
-# def index():
-#     form = FormularioCombustible()
-#     cargas = Cargas.query.all()
-#     anno = datetime.now().strftime("%Y")
-#     fechas_referencia = {'mes_anterior_2':datetime.now()-relativedelta(months=2), 'mes_anterior':datetime.now()-relativedelta(months=1), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now()+relativedelta(months=1), 'mes_siguiente_2':datetime.now()+relativedelta(months=2)}
-#     referencias_principales = referencias_vehiculo(cargas)
-#     balance_movimientos, balance_mensual = balance_cuenta()
-#     gastos = db.session.query(AgrupadorGastos.id.label('id_agrupador_gastos'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.id, AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
-#     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
-#     disponibilidad = credito - pagadas
-#     balance=balances_tarjetas()
-#     id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
-#     return render_template('new_home.html',  
-#                            form=form, 
-#                            **referencias_principales, #usar ** permite que se manipule la variable directamente en el DOM
-#                            movimientos=balance_mensual, 
-#                            anno=anno, 
-#                            fechas_referencia=fechas_referencia, 
-#                            balance_movimientos=balance_movimientos, 
-#                            gastos=gastos, total_gasto=pendientes, 
-#                            disponibilidad=disponibilidad, 
-#                            balance=balance, 
-#                            id_tarjeta=id_tarjeta[0]) 
-    
-
-@app.route('/old_index', methods=['GET'])
-def old_index():
-    form = FormularioCombustible()
-    cargas = Cargas.query.all()
-    anno = datetime.now().strftime("%Y")
-    fechas_referencia = {'mes_anterior_2':datetime.now()-relativedelta(months=2), 'mes_anterior':datetime.now()-relativedelta(months=1), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now()+relativedelta(months=1), 'mes_siguiente_2':datetime.now()+relativedelta(months=2)}
-    referencias_principales = referencias_vehiculo(cargas)
-    balance_movimientos, balance_mensual = balance_cuenta()
-    # saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
-    # saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
-    # saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
-    gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
-    # total_gasto = saldo_grupo(gastos)
-    credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
-    disponibilidad = credito - pagadas
-    balance=balances_tarjetas()
-    id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
-    # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
-    return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
-    # return render_template('new_home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
-    # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
-    # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
-    
-
-
-# @app.route('/login', methods=['GET', 'POST'])
-# def login():
-#     if current_user.is_authenticated:
-#         return redirect(url_for('index'))
-#     form = LoginForm()
-#     if form.validate_on_submit():
-#         user = User.query.filter_by(username=form.username.data).first()
-#         if user is None or not user.check_password(form.password.data):
-#             flash('Invalid username or password')
-#             return redirect(url_for('login'))
-#         login_user(user, remember=form.remember_me.data)
-#         next_page = request.args.get('next')
-#         if not next_page or url_parse(next_page).netloc != '':
-#             next_page = url_for('index')
-#         return redirect(next_page)
-#     return render_template('login.html', title='Sign In', form=form)
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
-        login_user(user, remember=form.remember_me.data)
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('index')
-        return redirect(next_page)
-    return render_template('new_login.html', title='Iniciar Sesion', form=form)
-
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('index'))
-
-@app.route('/recargas', methods=['GET', 'POST'])
-@login_required
-def recargas():
-    cargas_anuales = []
-    annos = db.session.query(func.strftime("%Y", Cargas.fecha_carga).label('anno')).distinct().all()
-    for anno in annos:
-        referencias = referencias_vehiculo_puntual(anno[0])
-        cargas_anuales.append(referencias)
-    return render_template('combustible.html', cargas_anuales=cargas_anuales)
-
-@app.route('/recargas_detalle/<anno>', methods=['GET', 'POST'])
-@login_required
-def recargas_detalle(anno):
-    cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).order_by(Cargas.fecha_carga).all()
-    return render_template('detalles_anno_combus.html', cargas=cargas, anno=anno)
-
-@app.route('/nueva_recarga', methods=['GET', 'POST'])
-@login_required
-def nueva_recarga():
-    form = FormularioCombustible()
-    if form.fecha_carga.data is None:
-        form.fecha_carga.data = datetime.today()
-        
-    if form.validate_on_submit():
-        carga = Cargas(date=datetime.utcnow(), 
-                       fecha_carga=form.fecha_carga.data,
-                       odometro=form.odometro.data, 
-                       emblema=form.emblema.data,
-                       precio=form.precio.data,
-                       monto_carga=form.monto.data
-                      )
-        db.session.add(carga)
-        db.session.commit()
-        carga = Movimientos(date=datetime.utcnow(),
-                        fecha_operacion=form.fecha_carga.data,
-                        descripcion=form.emblema.data, 
-                        monto_operacion=form.monto.data,
-                        id_tipo_movimiento=3,
-                        id_tarjeta=form.tarjeta.data)
-        db.session.add(carga)
-        db.session.commit()
-        flash('Nueva recarga agregada con exito.') 
-        return redirect(url_for('index'))
-    else:
-        for k, v in form.errors.items():
-            flash('Error en: '+k)
-    return render_template('recarga.html', form=form)
-
-@app.route('/modificar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
-@login_required
-def modificar_recarga(recarga_id):
-    recarga = Cargas.query.get(recarga_id)
-    form = FormularioCombustible()
-    if recarga:
-        if form.validate_on_submit():
-            recarga.fecha_carga = form.fecha_carga.data # hay que preparar un datepicker
-            recarga.odometro = form.odometro.data
-            recarga.emblema = form.emblema.data
-            recarga.precio = form.precio.data
-            recarga.monto_carga = form.monto.data
-            #recarga.ta
-            db.session.commit()
-            flash('Se modifico la recarga con exito.')
-            return  redirect(url_for('recargas'))
-        else:
-            for k, v in form.errors.items():
-                flash('Error en: '+k)
-        form.fecha_carga.data = recarga.fecha_carga
-        form.odometro.data = recarga.odometro
-        form.emblema.data = recarga.emblema
-        form.precio.data = recarga.precio 
-        form.monto.data = recarga.monto_carga
-        return render_template('modificar_recarga.html', form=form, recarga_id=recarga.id)
-    else:
-        flash('No se encontro la recarga a modificar.')
-    return redirect(url_for('index'))
-
-@app.route('/borrar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
-@login_required
-def borrar_recarga(recarga_id):
-    recarga = Cargas.query.get(recarga_id)
-    form = FormularioCombustible()
-    if recarga:
-        form.fecha_carga.data = recarga.fecha_carga
-        form.odometro.data = recarga.odometro
-        form.emblema.data = recarga.emblema
-        form.precio.data = recarga.precio 
-        form.monto.data = recarga.monto_carga
-        if form.validate_on_submit():
-            db.session.delete(recarga) 
-            db.session.commit()
-            flash('Lista de recargas actualizada.')
-            return  redirect(url_for('recargas'))
-        else:
-            for k, v in form.errors.items():
-                flash('Error en: '+k) 
-        return render_template('borrar_recarga.html', form=form, recarga_id=recarga_id)
-    else:
-        flash('No se encontro la recarga a eliminar.')
-    return redirect(url_for('index'))
-
-# @app.route('/movimientos_mes/', defaults={'mes':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
-# @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
-# @login_required
-# def movimientos_mes(mes):
-#     form = FormularioMovimientos()
-#     # print(datetime.now().strftime('%Y-%m'), mes)
-#     defaults={'mes':datetime.now().strftime('%Y-%m')}
-#     meses = datetime.strptime(mes, '%Y-%m')
-#     fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
-#     operaciones_tj = movimientos_agrupados(mes)
-#     balances=saldos_mes_tarjeta(mes)
-#     # return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
-#     return render_template('new_detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas, form=form)
-
-@app.route('/movimientos_mes/', defaults={'mes':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
-@app.route('/movimientos_mes/<string:mes>', methods=['GET'])
-@login_required
-def movimientos_mes(mes):
-    # No form objects initialized here!
-    # Just query your standard list metrics...
-    meses = datetime.strptime(mes, '%Y-%m')
-    fechas = {
-        'mes_anterior': meses - relativedelta(months=1),
-        'mes_actual': meses,
-        'mes_siguiente': meses + relativedelta(months=1)
-    }
-    balances = saldos_mes_tarjeta(mes)
-    operaciones_tj = movimientos_agrupados(mes)
-
-    # for mov in Movimientos.query.all():
-    #     print (mov)
-
-    # m=Movimientos.query.filter(Movimientos.monto_operacion==1893).first()
-    # if m:
-    #     print(m.id, m.fecha_operacion, m.descripcion, m.monto_operacion, m.id_tipo_movimiento, m.id_tarjeta)
-    #     db.session.delete(m)
-    #     db.session.commit()
-
-    return render_template('new_detalle_mes.html', 
-                           fechas=fechas, 
-                           balances=balances, 
-                           operaciones_tj=operaciones_tj) # Form removed!
-
-# @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
-# @login_required
-# def modificar_operacion(operacion_id):
-#     operacion = Movimientos.query.get(operacion_id)
-#     form = FormularioMovimientos()
-#     if operacion:
-#         if form.validate_on_submit():
-#             mes = operacion.fecha_operacion.strftime('%Y-%m') 
-#             if not mes: mes = datetime.now().strftime("%Y-%m")
-#             operacion.fecha_operacion = form.fecha_operacion.data # hay que preparar un datepicker
-#             operacion.descripcion = form.descripcion.data
-#             operacion.monto_operacion = form.monto_operacion.data
-#             operacion.id_tipo_movimiento = form.tipo_operacion.data
-#             operacion.id_tarjeta = form.tarjeta.data
-#             db.session.commit()
-#             flash('Se modifico la operacion con exito.')
-#             return redirect(url_for('movimientos_mes', mes=mes))
-#         else:
-#             for k, v in form.errors.items():
-#                 flash('Error en: '+k)
-#         form.fecha_operacion.data = operacion.fecha_operacion # hay que preparar un datepicker
-#         form.descripcion.data = operacion.descripcion
-#         form.monto_operacion.data = operacion.monto_operacion
-#         form.tipo_operacion.data = operacion.tipo_movimiento.id
-#         form.tarjeta.data = operacion.tarjeta.id
-#         return render_template('modificar_operacion.html', form=form, operacion_id=operacion_id)
-#     else:
-#         flash('No se encontro la operacion a modificar.')
-#     return redirect(url_for('index'))
-
-@app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
-@login_required
-def modificar_operacion(operacion_id):
-    movimiento = Movimientos.query.get_or_404(operacion_id)
-    
-    # Assign row records straight from raw form fields
-    movimiento.descripcion = request.form.get('descripcion')
-    movimiento.monto_operacion = request.form.get('monto_operacion', type=int)
-    movimiento.id_tipo_movimiento = request.form.get('id_tipo_movimiento', type=int)
-    
-    fecha_str = request.form.get('fecha_operacion')
-    if fecha_str:
-        movimiento.fecha_operacion = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-
-    db.session.commit()
-    flash('Operación actualizada con éxito.', 'success')
-    return redirect(url_for('movimientos_mes', mes=movimiento.fecha_operacion.strftime('%Y-%m')))
-
-# @app.route('/borrar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
-# @login_required
-# def borrar_operacion(operacion_id):
-#     operacion = Movimientos.query.get(operacion_id)
-#     form = FormularioMovimientos()
-#     if operacion:
-#         form.fecha_operacion.data = operacion.fecha_operacion
-#         form.descripcion.data = operacion.descripcion
-#         form.monto_operacion.data = operacion.monto_operacion
-#         form.tipo_operacion.data = operacion.tipo_movimiento.id
-#         form.tipo_operacion_view.data = operacion.tipo_movimiento.tipo
-#         form.tarjeta.data = operacion.tarjeta.id
-#         form.tarjeta_view.data = operacion.tarjeta.banco
-#         if form.validate_on_submit():
-#             mes = operacion.fecha_operacion.strftime('%Y-%m') 
-#             db.session.delete(operacion)
-#             db.session.commit()
-#             flash('Lista de movimientos actualizada.')
-#             return redirect(url_for('movimientos_mes', mes=mes))
-#         else:
-#             for k, v in form.errors.items():
-#                 flash('Error en: '+k)
-#         return render_template('borrar_operacion.html', form=form, operacion_id=operacion_id)
-#     else:
-#         flash('No se encontro la operacion a eliminar.')
-#     return redirect(url_for('index'))
-
-@app.route('/borrar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
-@login_required
-def borrar_operacion(operacion_id):
-    movimiento = Movimientos.query.get_or_404(operacion_id)
-    target_mes = movimiento.fecha_operacion.strftime('%Y-%m')
-    
-    db.session.delete(movimiento)
-    db.session.commit()
-    flash('Operación eliminada con éxito.', 'success')
-    return redirect(url_for('movimientos_mes', mes=target_mes))
-
-# @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
-# @login_required
-# def nueva_operacion(tarjeta):
-#     form = FormularioMovimientos()
-#     if form.fecha_operacion.data is None:
-#         form.fecha_operacion.data = datetime.today()
-#     if tarjeta:
-#         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
-#         form.tarjeta.data=tj.id
-#     else:
-#         tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
-#     tarjeta = tj.banco
-#     if form.validate_on_submit():
-#         mes = form.fecha_operacion.data.strftime('%Y-%m') 
-#         if not mes: mes = datetime.now().strftime("%Y-%m")
-#         carga = Movimientos(date=datetime.utcnow(),
-#                         fecha_operacion=form.fecha_operacion.data,
-#                         descripcion=form.descripcion.data, 
-#                         monto_operacion=form.monto_operacion.data,
-#                         id_tipo_movimiento=form.tipo_operacion.data, 
-#                         id_tarjeta=form.tarjeta.data)
-#         db.session.add(carga)
-#         db.session.commit()
-#         if (form.tipo_operacion.data==10): # 10 es el id de pago
-#             carga = GastosFijos(date=datetime.utcnow(),
-#                             fecha_pagar=form.fecha_operacion.data,
-#                             descripcion=form.descripcion.data, 
-#                             monto=form.monto_operacion.data,
-#                             operacion=False,
-#                             pagado=True,
-#                             id_agrupador_gastos=3)
-#             db.session.add(carga)
-#             db.session.commit()
-#         flash('Nueva operacion agregada con exito.')
-#         return redirect(url_for('movimientos_mes', mes=mes))
-#     else:
-#         for k, v in form.errors.items():
-#             flash('Error en: '+k)
-#     return render_template('nueva_operacion.html', form=form, id_tarjeta=tarjeta)
-
-@app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
-@login_required
-def nueva_operacion(tarjeta):
-    # 1. Look up target credit card ID via its text description name string
-    tarjeta_obj = Tarjetas.query.filter_by(banco=tarjeta).first()
-    if not tarjeta_obj:
-        flash('Tarjeta no válida.', 'danger')
-        return redirect(url_for('index'))
-
-    # 2. Extract plain HTML input string fields directly from request body
-    descripcion = request.form.get('descripcion')
-    monto_operacion = request.form.get('monto_operacion', type=int)
-    id_tipo_movimiento = request.form.get('id_tipo_movimiento', type=int)
-    fecha_str = request.form.get('fecha_operacion')
-    fecha_operacion = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
-
-    if id_tipo_movimiento == 10: # 10 es el id de pago
-        gasto = GastosFijos(date=datetime.now(ZoneInfo("America/Asuncion")).replace(tzinfo=None),
-                            fecha_pagar=datetime.strptime(request.form.get('fecha_operacion'), '%Y-%m-%d').date() if request.form.get('fecha_operacion') else date.today(),
-                            descripcion=descripcion,            
-                            monto=monto_operacion,
-                            operacion=False,        
-                            pagado=True,
-                            id_agrupador_gastos=3)
-        db.session.add(gasto)   
-        # db.session.commit() # Commit deferred until after the main operation is added to ensure atomicity of related records
-    # Safely convert HTML date string ('YYYY-MM-DD') into Python date object
-
-    # 3. Instantiate database model row directly
-    movimiento = Movimientos(
-        date=datetime.now(ZoneInfo("America/Asuncion")).replace(tzinfo=None),
-        fecha_operacion=fecha_operacion,
-        descripcion=descripcion,
-        monto_operacion=monto_operacion,
-        id_tipo_movimiento=id_tipo_movimiento,
-        id_tarjeta=tarjeta_obj.id  # Links item accurately to the container context
-    )
-    
-    db.session.add(movimiento)
-    db.session.commit()
-    flash('Operación registrada con éxito.', 'success')
-    
-    # Redirect back to the view layer
-    return redirect(url_for('movimientos_mes', mes=fecha_operacion.strftime('%Y-%m')))
-
-@app.route('/aplicar_descuento/<int:operacion_id>', methods=['POST'])
-@login_required
-def aplicar_descuento(operacion_id):
-    try:
-        # Extract metadata from incoming HTML request form payload parameters
-        porcentaje = float(request.form.get('porcentaje', 0))
-        base_monto = float(request.form.get('base_monto', 0))
-        base_fecha_str = request.form.get('base_fecha')
-        base_tipo = request.form.get('base_tipo')
-        base_descripcion = request.form.get('base_descripcion')
-        id_tarjeta = request.form.get('id_tarjeta') # Capture original card assignment context
-
-        if porcentaje <= 0 or porcentaje > 100:
-            flash('Porcentaje de descuento inválido.', 'danger')
-            return redirect(request.referrer or url_for('index'))
-
-        # this must be a positive value to calculate the discount correctly, even if the original amount is negative (e.g., for expenses)
-        monto_descuento = (abs(base_monto) * (porcentaje / 100.0))
-
-        # Parse transaction execution date context
-        fecha_operacion = datetime.strptime(base_fecha_str, '%Y-%m-%d').date() if base_fecha_str else date.today()
-
-        # Custom descriptive indicator label
-        nueva_descripcion = f"Descuento {int(porcentaje)}% - {base_descripcion}"
-
-        # Instantiate dynamic model row entry binding card properties directly
-        nuevo_movimiento = Movimientos(
-            date=datetime.utcnow(),
-            fecha_operacion=fecha_operacion,
-            descripcion=nueva_descripcion,
-            monto_operacion=int(round(monto_descuento)), # Store cleanly as integer units
-            id_tipo_movimiento=18, #int(base_tipo) if base_tipo else None, fixed for type Descuento
-            id_tarjeta=int(id_tarjeta) if id_tarjeta else None # Links directly to the same credit card card item
-        )
-        db.session.add(nuevo_movimiento)
-        db.session.commit()
-        
-        flash(f'¡Descuento de {int(porcentaje)}% aplicado y restado del balance de la tarjeta!', 'success')
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al procesar la inserción de descuento: {str(e)}', 'danger')
-
-    return redirect(request.referrer or url_for('index'))
-
-@app.route('/historial_operacion', methods=['GET', 'POST'])
-@login_required
-def historial_operacion():
-    operaciones=[]
-    for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all():
-        operaciones.append({'fecha_operacion':movimiento.fecha_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'acreedor': movimiento.acreedor, 'total': movimiento.total})
-    return render_template('historial_operaciones.html', operaciones=operaciones)
-
-@app.route('/historial_operacion_anno/<string:anno>', methods=['GET', 'POST'])
-@login_required
-def historial_operacion_messanno(anno):
-    operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
-    balance_mes = movimiento_balances_mes_a_mes(anno) # datos de movimientos agrupados por mes y banco
-    months = sorted(list(set(item['mes'] for item in balance_mes))) # lista de meses en el balance
-    banks = sorted(list(set(item['banco'] for item in balance_mes))) # lista de bancos en el balance
-    restructured_data = {bank: {} for bank in banks} # reestructura los datos en un diccionario para facilitar el acceso
-    for item in balance_mes:
-        restructured_data[item['banco']][item['mes']] = item['saldo'] # agrupar banco y mes, y asignar el saldo
-    monthly_totals = {month: 0 for month in months}
-    for item in balance_mes:
-        monthly_totals[item['mes']] += item['saldo'] # calcula el total mensual sumando los saldos de todos los bancos
-    return render_template('historial_operaciones_anno.html', gastos=operaciones, data=restructured_data, months=months, monthly_totals=monthly_totals)
-
-@app.route('/parametrico', methods=['GET', 'POST'])
-@login_required
-def parametrico():
-    tipos_movimiento = TiposMovimiento.query.all()
-    agrupador_gastos = AgrupadorGastos.query.all()
-    gastos_fijos = DeudasPendientes.query.all()
-    tarjetas = resumenes_tarjeta_macro() # Tarjetas.query.all()
-    return render_template('new_parametrico.html', #'parametrico.html', 
-                           tipos_movimiento=tipos_movimiento, 
-                           agrupador_gastos=agrupador_gastos, 
-                           gastos_fijos=gastos_fijos, 
-                           tarjetas=tarjetas)
-
-@app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
-@login_required
-def modificar_parametrico(parametrico_id, origen):
-    form = FormularioParametricos()
-    if origen == 'TIPOS':
-        parametro = TiposMovimiento.query.get(parametrico_id)
-    elif origen == 'AGRUPADORES':
-        parametro = AgrupadorGastos.query.get(parametrico_id)
-    if parametro:
-        if form.validate_on_submit():
-            if origen == 'TIPOS':
-                parametro.tipo = form.descripcion.data
-                # db.session.commit()
-            elif origen == 'AGRUPADORES':
-                parametro.agrupador = form.descripcion.data
-            db.session.commit()
-            flash('Lista de '+ origen +' actualizada.')
-            return redirect(url_for('parametrico'))
-        else:
-            for k, v in form.errors.items():
-                flash('Error en: '+k)
-        if origen == 'TIPOS':
-            form.descripcion.data = parametro.tipo
-        elif origen == 'AGRUPADORES':
-            form.descripcion.data = parametro.agrupador
-        return render_template('modificar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
-    else:
-        flash('No se encontro la operacion a eliminar.')
-    return redirect(url_for('parametrico'))
-
-@app.route('/borrar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
-@login_required
-def borrar_parametrico(parametrico_id, origen):
-    form = FormularioParametricos()
-    if origen == 'TIPOS':
-        parametro = TiposMovimiento.query.get(parametrico_id)
-    elif origen == 'AGRUPADORES':
-        parametro = AgrupadorGastos.query.get(parametrico_id)
-    if parametro:
-        if origen == 'TIPOS':
-            # parametro = TiposMovimiento(tipo=form.descripcion.data)
-            form.descripcion.data = parametro.tipo
-        elif origen == 'AGRUPADORES':
-            # parametro = AgrupadorGastos(agrupador=form.descripcion.data)
-            form.descripcion.data = parametro.agrupador
-        if form.validate_on_submit():
-            db.session.delete(parametro)
-            db.session.commit()
-            flash('Lista de '+ origen +' actualizada.')
-            return redirect(url_for('parametrico'))
-        return render_template('borrar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
-    else:
-        flash('No se encontro la operacion a eliminar.')
-    return redirect(url_for('parametrico'))
-
-@app.route('/nuevo_parametrico/<string:origen>', methods=['GET', 'POST'])
-@login_required
-def nuevo_parametrico(origen):
-    form = FormularioParametricos()
-    if form.validate_on_submit():
-        if origen == 'TIPOS':
-            parametro = TiposMovimiento(tipo=form.descripcion.data)
-        elif origen == 'AGRUPADORES':
-            parametro = AgrupadorGastos(agrupador=form.descripcion.data)
-        db.session.add(parametro)
-        db.session.commit()
-        flash('Nuevo parametro: ' + origen + ' agregado con exito.')
-        return redirect(url_for('parametrico'))
-    else:
-        for k, v in form.errors.items():
-            flash('Error en: '+k)
-    return render_template('nuevo_parametrico.html', form=form, origen=origen)    
-
-@app.route('/nuevo_gasto', methods=['GET', 'POST'])
-@login_required
-def nuevo_gasto():
-    form = FormularioGastos()
-    if form.fecha_pagar.data is None:
-        form.fecha_pagar.data = datetime.today()
-    if form.validate_on_submit():
-        mes = form.fecha_pagar.data.strftime('%Y-%m') 
-        if not mes: mes = datetime.now().strftime("%Y-%m")
-        carga = GastosFijos(date=datetime.utcnow(),
-                        fecha_pagar=form.fecha_pagar.data,
-                        descripcion=form.descripcion.data, 
-                        monto=form.monto.data,
-                        operacion=form.operacion.data,
-                        pagado=form.pagado.data,
-                        id_agrupador_gastos=form.agrupador.data)
-        db.session.add(carga)
-        db.session.commit()
-        flash('Nueva operacion agregada con exito.') 
-        return redirect(url_for('historico_gastos_detalle', periodo=mes))
-    else:
-        for k, v in form.errors.items():
-            flash('Error en: '+k)
-    return render_template('nuevo_gasto.html', form=form)
-
-@app.route('/historico_gastos_detalle/', defaults={'periodo':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
-@app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
-@login_required
-def historico_gastos_detalle(periodo):
-    date_obj = datetime.strptime(periodo, '%Y-%m')
-    fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
-    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
-    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id).all()
-    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar,GastosFijos.id_agrupador_gastos).all()
-    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar, GastosFijos.id).all()
-    if not gastos:
-        precarga_deudas(periodo)
-        gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
-    deuda = deuda_total(gastos)
-    credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO -  deuda
-    disponibilidad = credito - pagados
-    balance_movimientos, balance_mensual = balance_cuenta()
-    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=pagados, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas, balance_movimientos=balance_movimientos)
-
-@app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
-@login_required
-def modificar_gasto(gasto_id):
-    gasto = GastosFijos.query.get(gasto_id)
-    form = FormularioGastos()
-    if gasto:
-        if form.validate_on_submit(): 
-            mes = gasto.fecha_pagar.strftime('%Y-%m') 
-            gasto.fecha_pagar = form.fecha_pagar.data 
-            gasto.descripcion = form.descripcion.data
-            gasto.monto = form.monto.data
-            gasto.id_agrupador_gastos = form.agrupador.data
-            gasto.operacion = form.operacion.data
-            gasto.pagado = form.pagado.data
-            db.session.commit()
-            flash('Se modifico el gasto con exito.')
-            return redirect(url_for('historico_gastos_detalle', periodo=mes))
-        else:
-            for k, v in form.errors.items():
-                flash('Error en: '+k)
-        form.fecha_pagar.data = gasto.fecha_pagar
-        form.descripcion.data = gasto.descripcion
-        form.monto.data = gasto.monto
-        form.operacion.data = gasto.operacion 
-        form.pagado.data = gasto.pagado
-        form.agrupador.data = gasto.agrupador_gastos.id
-        return render_template('modificar_gasto.html', form=form, gasto_id=gasto.id)
-    else:
-        flash('No se encontro el gasto a modificar.')
-    return redirect(url_for('index'))
-
-@app.route('/borrar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
-@login_required
-def borrar_gasto(gasto_id):
-    gasto = GastosFijos.query.get(gasto_id)
-    form = FormularioGastos()
-    if gasto:
-        form.fecha_pagar.data = gasto.fecha_pagar
-        form.descripcion.data = gasto.descripcion
-        form.monto.data = gasto.monto
-        form.operacion.data = gasto.operacion 
-        form.pagado.data = gasto.pagado
-        form.agrupador.data = gasto.agrupador_gastos.id
-        form.agrupador_view.data = gasto.agrupador_gastos.agrupador
-        if form.validate_on_submit():
-            mes = gasto.fecha_pagar.strftime('%Y-%m') 
-            db.session.delete(gasto)
-            db.session.commit()
-            flash('Lista de gastos actualizada.')
-            #gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.descripcion!='REFERENCIA').all()
-            gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).all()
-            if not gastos:
-                return redirect(url_for('index'))
-            return redirect(url_for('historico_gastos_detalle', periodo=mes))
-        else:
-            for k, v in form.errors.items():
-                flash('Error en: '+k)
-        return render_template('borrar_gasto.html', form=form, gasto_id=gasto_id)
-    else:
-        flash('No se encontro la operacion a eliminar.')
-    return redirect(url_for('index'))   
-
-@app.route('/historico_gastos', methods=['GET', 'POST'])
-@login_required
-def historico_gastos():
-    gastos = db.session.query(func.strftime("%Y", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
-    return render_template('historico_gastos.html', gastos=gastos)
-
-@app.route('/historico_gastos_mesanno/<string:anno>', methods=['GET', 'POST'])
-@login_required
-def historico_gastos_mesanno(anno):
-    gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).filter(func.strftime("%Y", GastosFijos.fecha_pagar)==anno).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
-    return render_template('historico_gastos_mesanno.html', gastos=gastos)
-
-# @app.route('/register', methods=['GET', 'POST'])
-# def register():
-#     if current_user.is_authenticated:
-#         return redirect(url_for('index'))
-#     form = RegistrationForm()
-#     if form.validate_on_submit():
-#         user = User(username=form.username.data, email=form.email.data)
-#         user.set_password(form.password.data)
-#         db.session.add(user)
-#         db.session.commit()
-#         flash('Congratulations, you are now a registered user!')
-#         return redirect(url_for('login'))
-#     else:
-#         for k, v in form.errors.items():
-#             flash('Error en: '+k)
-#     return render_template('register.html', title='Register', form=form)
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data)
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Felicidades, el usuario ha sido creado existosamente!')
-        return redirect(url_for('login'))
-    else:
-        for k, v in form.errors.items():
-            flash('Error en: '+k)
-    return render_template('new_register.html', title='Registrarse', form=form)
-
-
+# TRASH ENDPOINTS (NO USADOS EN LA INTERFAZ, SOLO PARA TESTEO RÁPIDO EN POSTMAN O SIMILARES)
 # @app.route('/modificar_pendiente/<int:pendiente_id>', methods=['GET', 'POST'])
 # @login_required
 # def modificar_pendiente(pendiente_id):
@@ -1015,6 +174,770 @@ def register():
 #     #     for registro in balance:
 #     #         print (registro)
 #     return render_template('balance_anno_tarjeta.html', balance_anno=balance_anno)
+
+# @app.route('/register', methods=['GET', 'POST'])
+# def register():
+#     if current_user.is_authenticated:
+#         return redirect(url_for('index'))
+#     form = RegistrationForm()
+#     if form.validate_on_submit():
+#         user = User(username=form.username.data, email=form.email.data)
+#         user.set_password(form.password.data)
+#         db.session.add(user)
+#         db.session.commit()
+#         flash('Congratulations, you are now a registered user!')
+#         return redirect(url_for('login'))
+#     else:
+#         for k, v in form.errors.items():
+#             flash('Error en: '+k)
+#     return render_template('register.html', title='Register', form=form)
+
+# @app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
+# @login_required
+# def nueva_operacion(tarjeta):
+#     form = FormularioMovimientos()
+#     if form.fecha_operacion.data is None:
+#         form.fecha_operacion.data = datetime.today()
+#     if tarjeta:
+#         tj = db.session.query(Tarjetas).filter(Tarjetas.banco==tarjeta).first()
+#         form.tarjeta.data=tj.id
+#     else:
+#         tj = db.session.query(Tarjetas).filter(Tarjetas.estado==True).first()
+#     tarjeta = tj.banco
+#     if form.validate_on_submit():
+#         mes = form.fecha_operacion.data.strftime('%Y-%m') 
+#         if not mes: mes = datetime.now().strftime("%Y-%m")
+#         carga = Movimientos(date=datetime.utcnow(),
+#                         fecha_operacion=form.fecha_operacion.data,
+#                         descripcion=form.descripcion.data, 
+#                         monto_operacion=form.monto_operacion.data,
+#                         id_tipo_movimiento=form.tipo_operacion.data, 
+#                         id_tarjeta=form.tarjeta.data)
+#         db.session.add(carga)
+#         db.session.commit()
+#         if (form.tipo_operacion.data==10): # 10 es el id de pago
+#             carga = GastosFijos(date=datetime.utcnow(),
+#                             fecha_pagar=form.fecha_operacion.data,
+#                             descripcion=form.descripcion.data, 
+#                             monto=form.monto_operacion.data,
+#                             operacion=False,
+#                             pagado=True,
+#                             id_agrupador_gastos=3)
+#             db.session.add(carga)
+#             db.session.commit()
+#         flash('Nueva operacion agregada con exito.')
+#         return redirect(url_for('movimientos_mes', mes=mes))
+#     else:
+#         for k, v in form.errors.items():
+#             flash('Error en: '+k)
+#     return render_template('nueva_operacion.html', form=form, id_tarjeta=tarjeta)
+
+# @app.route('/borrar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+# @login_required
+# def borrar_operacion(operacion_id):
+#     operacion = Movimientos.query.get(operacion_id)
+#     form = FormularioMovimientos()
+#     if operacion:
+#         form.fecha_operacion.data = operacion.fecha_operacion
+#         form.descripcion.data = operacion.descripcion
+#         form.monto_operacion.data = operacion.monto_operacion
+#         form.tipo_operacion.data = operacion.tipo_movimiento.id
+#         form.tipo_operacion_view.data = operacion.tipo_movimiento.tipo
+#         form.tarjeta.data = operacion.tarjeta.id
+#         form.tarjeta_view.data = operacion.tarjeta.banco
+#         if form.validate_on_submit():
+#             mes = operacion.fecha_operacion.strftime('%Y-%m') 
+#             db.session.delete(operacion)
+#             db.session.commit()
+#             flash('Lista de movimientos actualizada.')
+#             return redirect(url_for('movimientos_mes', mes=mes))
+#         else:
+#             for k, v in form.errors.items():
+#                 flash('Error en: '+k)
+#         return render_template('borrar_operacion.html', form=form, operacion_id=operacion_id)
+#     else:
+#         flash('No se encontro la operacion a eliminar.')
+#     return redirect(url_for('index'))
+
+
+# @app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+# @login_required
+# def modificar_operacion(operacion_id):
+#     operacion = Movimientos.query.get(operacion_id)
+#     form = FormularioMovimientos()
+#     if operacion:
+#         if form.validate_on_submit():
+#             mes = operacion.fecha_operacion.strftime('%Y-%m') 
+#             if not mes: mes = datetime.now().strftime("%Y-%m")
+#             operacion.fecha_operacion = form.fecha_operacion.data # hay que preparar un datepicker
+#             operacion.descripcion = form.descripcion.data
+#             operacion.monto_operacion = form.monto_operacion.data
+#             operacion.id_tipo_movimiento = form.tipo_operacion.data
+#             operacion.id_tarjeta = form.tarjeta.data
+#             db.session.commit()
+#             flash('Se modifico la operacion con exito.')
+#             return redirect(url_for('movimientos_mes', mes=mes))
+#         else:
+#             for k, v in form.errors.items():
+#                 flash('Error en: '+k)
+#         form.fecha_operacion.data = operacion.fecha_operacion # hay que preparar un datepicker
+#         form.descripcion.data = operacion.descripcion
+#         form.monto_operacion.data = operacion.monto_operacion
+#         form.tipo_operacion.data = operacion.tipo_movimiento.id
+#         form.tarjeta.data = operacion.tarjeta.id
+#         return render_template('modificar_operacion.html', form=form, operacion_id=operacion_id)
+#     else:
+#         flash('No se encontro la operacion a modificar.')
+#     return redirect(url_for('index'))
+
+# @app.route('/modificar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+# @login_required
+# def modificar_recarga(recarga_id):
+#     recarga = Cargas.query.get(recarga_id)
+#     form = FormularioCombustible()
+#     if recarga:
+#         if form.validate_on_submit():
+#             recarga.fecha_carga = form.fecha_carga.data # hay que preparar un datepicker
+#             recarga.odometro = form.odometro.data
+#             recarga.emblema = form.emblema.data
+#             recarga.precio = form.precio.data
+#             recarga.monto_carga = form.monto.data
+#             #recarga.ta
+#             db.session.commit()
+#             flash('Se modifico la recarga con exito.')
+#             return  redirect(url_for('recargas'))
+#         else:
+#             for k, v in form.errors.items():
+#                 flash('Error en: '+k)
+#         form.fecha_carga.data = recarga.fecha_carga
+#         form.odometro.data = recarga.odometro
+#         form.emblema.data = recarga.emblema
+#         form.precio.data = recarga.precio 
+#         form.monto.data = recarga.monto_carga
+#         return render_template('modificar_recarga.html', form=form, recarga_id=recarga.id)
+#     else:
+#         flash('No se encontro la recarga a modificar.')
+#     return redirect(url_for('index'))
+
+# @app.route('/borrar_recarga/<int:recarga_id>', methods=['GET', 'POST'])
+# @login_required
+# def borrar_recarga(recarga_id):
+#     recarga = Cargas.query.get(recarga_id)
+#     form = FormularioCombustible()
+#     if recarga:
+#         form.fecha_carga.data = recarga.fecha_carga
+#         form.odometro.data = recarga.odometro
+#         form.emblema.data = recarga.emblema
+#         form.precio.data = recarga.precio 
+#         form.monto.data = recarga.monto_carga
+#         if form.validate_on_submit():
+#             db.session.delete(recarga) 
+#             db.session.commit()
+#             flash('Lista de recargas actualizada.')
+#             return  redirect(url_for('recargas'))
+#         else:
+#             for k, v in form.errors.items():
+#                 flash('Error en: '+k) 
+#         return render_template('borrar_recarga.html', form=form, recarga_id=recarga_id)
+#     else:
+#         flash('No se encontro la recarga a eliminar.')
+#     return redirect(url_for('index'))
+
+# @app.route('/movimientos_mes/', defaults={'mes':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
+# @app.route('/movimientos_mes/<string:mes>', methods=['GET', 'POST'])
+# @login_required
+# def movimientos_mes(mes):
+#     form = FormularioMovimientos()
+#     # print(datetime.now().strftime('%Y-%m'), mes)
+#     defaults={'mes':datetime.now().strftime('%Y-%m')}
+#     meses = datetime.strptime(mes, '%Y-%m')
+#     fechas={'mes_anterior':meses-relativedelta(months=1), 'mes_actual':meses, 'mes_siguiente':meses+relativedelta(months=1)}
+#     operaciones_tj = movimientos_agrupados(mes)
+#     balances=saldos_mes_tarjeta(mes)
+#     # return render_template('detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas)
+#     return render_template('new_detalle_mes.html', mes=mes, operaciones_tj=operaciones_tj, balances=balances, fechas=fechas, form=form)
+
+
+# DOCS - COMBUSTIBLE: Gestión de recargas de combustible. Se implementan rutas para visualizar las recargas realizadas, agregar nuevas recargas, modificar recargas existentes y eliminar recargas. Estas funcionalidades permiten a los usuarios llevar un registro detallado de sus gastos en combustible, incluyendo fechas, odómetro, emblema, precio y monto de cada recarga.
+# @app.route('/recargas', methods=['GET', 'POST'])
+# @login_required
+# def recargas():
+#     cargas_anuales = []
+#     annos = db.session.query(func.strftime("%Y", Cargas.fecha_carga).label('anno')).distinct().all()
+#     for anno in annos:
+#         referencias = referencias_vehiculo_puntual(anno[0])
+#         cargas_anuales.append(referencias)
+#     return render_template('combustible.html', cargas_anuales=cargas_anuales)
+
+# @app.route('/recargas_detalle/<anno>', methods=['GET', 'POST'])
+# @login_required
+# def recargas_detalle(anno):
+#     cargas = Cargas.query.filter(func.strftime("%Y", Cargas.fecha_carga)==anno).order_by(Cargas.fecha_carga).all()
+#     return render_template('detalles_anno_combus.html', cargas=cargas, anno=anno)
+
+
+# @app.route('/')
+# @app.route('/index', methods=['GET', 'POST'])
+# @login_required
+# def index():
+#     form = FormularioCombustible()
+#     cargas = Cargas.query.all()
+#     anno = datetime.now().strftime("%Y")
+#     fechas_referencia = {'mes_anterior_2':datetime.now()-relativedelta(months=2), 'mes_anterior':datetime.now()-relativedelta(months=1), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now()+relativedelta(months=1), 'mes_siguiente_2':datetime.now()+relativedelta(months=2)}
+#     referencias_principales = referencias_vehiculo(cargas)
+#     balance_movimientos, balance_mensual = balance_cuenta()
+#     gastos = db.session.query(AgrupadorGastos.id.label('id_agrupador_gastos'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.id, AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
+#     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
+#     disponibilidad = credito - pagadas
+#     balance=balances_tarjetas()
+#     id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
+#     return render_template('new_home.html',  
+#                            form=form, 
+#                            **referencias_principales, #usar ** permite que se manipule la variable directamente en el DOM
+#                            movimientos=balance_mensual, 
+#                            anno=anno, 
+#                            fechas_referencia=fechas_referencia, 
+#                            balance_movimientos=balance_movimientos, 
+#                            gastos=gastos, total_gasto=pendientes, 
+#                            disponibilidad=disponibilidad, 
+#                            balance=balance, 
+#                            id_tarjeta=id_tarjeta[0]) 
+    
+
+# @app.route('/old_index', methods=['GET'])
+# def old_index():
+#     form = FormularioCombustible()
+#     cargas = Cargas.query.all()
+#     anno = datetime.now().strftime("%Y")
+#     fechas_referencia = {'mes_anterior_2':datetime.now()-relativedelta(months=2), 'mes_anterior':datetime.now()-relativedelta(months=1), 'fecha_actual':datetime.now(),  'mes_siguiente':datetime.now()+relativedelta(months=1), 'mes_siguiente_2':datetime.now()+relativedelta(months=2)}
+#     referencias_principales = referencias_vehiculo(cargas)
+#     balance_movimientos, balance_mensual = balance_cuenta()
+#     # saldo_atlas = balance_cuenta_puntual(movimientos_tarjeta(1))
+#     # saldo_basa = balance_cuenta_puntual(movimientos_tarjeta(2))
+#     # saldo_interfisa = balance_cuenta_puntual(movimientos_tarjeta(3))
+#     gastos = db.session.query(AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(AgrupadorGastos.agrupador).filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==fechas_referencia['fecha_actual'].strftime('%Y-%m')).all()
+#     # total_gasto = saldo_grupo(gastos)
+#     credito, pendientes, pagadas = calcular_disponibilidad(fechas_referencia['fecha_actual'].strftime('%Y-%m'))
+#     disponibilidad = credito - pagadas
+#     balance=balances_tarjetas()
+#     id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado==True).first()
+#     # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+#     return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+#     # return render_template('new_home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+#     # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, saldo_atlas=saldo_atlas, saldo_basa=saldo_basa, saldo_interfisa=saldo_interfisa, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+#     # return render_template('home.html',  form=form, **referencias_principales, movimientos=balance_mensual, anno=anno, fechas_referencia=fechas_referencia, balance_movimientos=balance_movimientos, gastos=gastos, total_gasto=pendientes, disponibilidad=disponibilidad, balance=balance, id_tarjeta=id_tarjeta[0]) #usar ** permite que se manipule la variable directamente en el DOM
+# from app.parametros import SALARIO_NETO
+# import calendar
+
+
+
+from datetime import date, datetime, timedelta, timezone
+from dateutil.relativedelta import relativedelta
+from flask import jsonify, render_template, flash, redirect, url_for, request, send_from_directory
+from app import app, db
+from app.formularios import FormularioGastos, FormularioMovimientos, FormularioCombustible, FormularioParametricos, FormularioPendientes, FormularioTarjetas, FormularioBusqueda, LoginForm, RegistrationForm
+from app.models import DeudasPendientes, Tarjetas, User, AgrupadorGastos, GastosFijos, Cargas, Movimientos, TiposMovimiento
+from app.utilitarios import listar_agrupador, balance_cuenta, calcular_disponibilidad, movimientos_tarjeta, referencias_vehiculo, balance_cuenta_puntual, precarga_deudas, deuda_total, referencias_vehiculo_puntual, saldo_grupo, movimientos_agrupados, saldos_mes_tarjeta, balances_tarjetas, resumenes_tarjeta_macro, movimientos_anno_tarjeta_balance, movimiento_balances_mes_a_mes
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.urls import url_parse
+from sqlalchemy import and_, func, desc, case, cast, Float 
+from sqlalchemy.exc import SQLAlchemyError
+from collections import defaultdict
+from zoneinfo import ZoneInfo
+
+
+
+# DOCS - APP: skip the error handling for favicon requests to avoid cluttering logs with 404s
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+# DOCS - APP: Home route with dynamic tabs for months with data, and dynamic date references based on the active tab. This allows users to navigate through different months of data while keeping the interface clean and focused on the selected period.
+@app.route('/')
+@app.route('/index', methods=['GET', 'POST'])
+@login_required
+def index():
+    form = FormularioCombustible()
+    cargas = Cargas.query.all()
+    hoy = datetime.now()
+    mes_activo = request.args.get('mes', default=hoy.month, type=int)
+    anno_activo = request.args.get('anno', default=hoy.year, type=int)
+    fecha_seleccionada = datetime(anno_activo, mes_activo, 1)
+    periodos_poblados = db.session.query(
+        func.strftime('%Y', GastosFijos.fecha_pagar).label('anno'),
+        func.strftime('%m', GastosFijos.fecha_pagar).label('mes')
+    ).group_by(
+        'anno', 'mes'
+    ).order_by(
+        desc('anno'), desc('mes')  # <--- Cambiado aquí (limpio y nativo)
+    ).limit(6).all()  # Limitar a los últimos 12 meses para evitar sobrecargar la interfaz con demasiadas pestañas
+    meses_es = {
+        1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+        7: "Jul", 8: "Ago", 9: "Set", 10: "Oct", 11: "Nov", 12: "Dic"
+    }
+    lista_meses_tabs = []
+    for p in periodos_poblados:
+        if p.mes and p.anno: # Asegurar que no vengan nulos
+            m_int = int(p.mes)
+            a_int = int(p.anno)
+            lista_meses_tabs.append({
+                'anno': a_int,
+                'mes': m_int,
+                'label': f"{meses_es[m_int]} {a_int}",
+                'es_activo': (m_int == mes_activo and a_int == anno_activo)
+            })
+    if not lista_meses_tabs:
+        lista_meses_tabs.append({
+            'anno': hoy.year, 'mes': hoy.month, 'label': f"{meses_es[hoy.month]} {hoy.year}", 'es_activo': True
+        })
+    anno = fecha_seleccionada.strftime("%Y")
+    fechas_referencia = {
+        'mes_anterior_2': fecha_seleccionada - relativedelta(months=2), 
+        'mes_anterior': fecha_seleccionada - relativedelta(months=1), 
+        'fecha_actual': fecha_seleccionada,  
+        'mes_siguiente': fecha_seleccionada + relativedelta(months=1), 
+        'mes_siguiente_2': fecha_seleccionada + relativedelta(months=2)
+    }
+    referencias_principales = referencias_vehiculo(cargas)
+    balance_movimientos, balance_mensual = balance_cuenta()
+    periodo_filtro = fecha_seleccionada.strftime('%Y-%m')
+    gastos = db.session.query(
+        AgrupadorGastos.id.label('id_agrupador_gastos'), 
+        AgrupadorGastos.agrupador.label('acreedor'), 
+        func.sum(GastosFijos.monto).label('total')
+    ).join(AgrupadorGastos).group_by(AgrupadorGastos.id, AgrupadorGastos.agrupador).filter(
+        func.strftime("%Y-%m", GastosFijos.fecha_pagar) == periodo_filtro
+    ).all()
+    credito, pendientes, pagadas = calcular_disponibilidad(periodo_filtro)
+    disponibilidad = credito - pagadas
+    balance = balances_tarjetas()
+    id_tarjeta = db.session.query(Tarjetas.banco).filter(Tarjetas.estado == True).first()
+    id_tarjeta_val = id_tarjeta[0] if id_tarjeta else None
+    return render_template(
+        'new_home.html',  
+        form=form, 
+        **referencias_principales, 
+        movimientos=balance_mensual, 
+        anno=anno, 
+        fechas_referencia=fechas_referencia, 
+        balance_movimientos=balance_movimientos, 
+        gastos=gastos, 
+        total_gasto=pendientes, 
+        disponibilidad=disponibilidad, 
+        balance=balance, 
+        id_tarjeta=id_tarjeta_val,
+        lista_meses_tabs=lista_meses_tabs, # Enviamos la lista de pestañas a la vista
+        mes_activo=mes_activo,             # Enviamos el mes activo como entero
+        anno_activo=anno_activo            # Enviamos el año activo como entero
+    )
+    
+# DOCS - APP: Login/Registrar nuevos usuarios. Se implementa un sistema de autenticación básico utilizando Flask-Login, con formularios de login y registro. Los usuarios registrados pueden iniciar sesión para acceder a las funcionalidades protegidas de la aplicación, como la gestión de recargas y movimientos financieros.
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
+    return render_template('new_login.html', title='Iniciar Sesion', form=form)
+
+# DOCS - APP: Salir de la sesión. La ruta de logout cierra la sesión del usuario actual utilizando Flask-Login y redirige al usuario a la página de inicio después de cerrar sesión.
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route('/nueva_recarga', methods=['GET', 'POST'])
+@login_required
+def nueva_recarga():
+    form = FormularioCombustible()
+    if form.fecha_carga.data is None:
+        form.fecha_carga.data = datetime.today()
+    if form.validate_on_submit():
+        carga = Cargas(date=datetime.utcnow(), 
+                       fecha_carga=form.fecha_carga.data,
+                       odometro=form.odometro.data, 
+                       emblema=form.emblema.data,
+                       precio=form.precio.data,
+                       monto_carga=form.monto.data
+                      )
+        db.session.add(carga)
+        db.session.commit()
+        carga = Movimientos(date=datetime.utcnow(),
+                        fecha_operacion=form.fecha_carga.data,
+                        descripcion=form.emblema.data, 
+                        monto_operacion=form.monto.data,
+                        id_tipo_movimiento=3,
+                        id_tarjeta=form.tarjeta.data)
+        db.session.add(carga)
+        db.session.commit()
+        flash('Nueva recarga agregada con exito.') 
+        return redirect(url_for('index'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('recarga.html', form=form)
+
+@app.route('/movimientos_mes/', defaults={'mes':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
+@app.route('/movimientos_mes/<string:mes>', methods=['GET'])
+@login_required
+def movimientos_mes(mes):
+    # No form objects initialized here!
+    # Just query your standard list metrics...
+    meses = datetime.strptime(mes, '%Y-%m')
+    fechas = {
+        'mes_anterior': meses - relativedelta(months=1),
+        'mes_actual': meses,
+        'mes_siguiente': meses + relativedelta(months=1)
+    }
+    balances = saldos_mes_tarjeta(mes)
+    operaciones_tj = movimientos_agrupados(mes)
+    return render_template('new_detalle_mes.html', 
+                           fechas=fechas, 
+                           balances=balances, 
+                           operaciones_tj=operaciones_tj) # Form removed!
+
+@app.route('/modificar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+@login_required
+def modificar_operacion(operacion_id):
+    movimiento = Movimientos.query.get_or_404(operacion_id)
+    movimiento.descripcion = request.form.get('descripcion')
+    movimiento.monto_operacion = request.form.get('monto_operacion', type=int)
+    movimiento.id_tipo_movimiento = request.form.get('id_tipo_movimiento', type=int)
+    fecha_str = request.form.get('fecha_operacion')
+    if fecha_str:
+        movimiento.fecha_operacion = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    db.session.commit()
+    flash('Operación actualizada con éxito.', 'success')
+    return redirect(url_for('movimientos_mes', mes=movimiento.fecha_operacion.strftime('%Y-%m')))
+
+@app.route('/borrar_operacion/<int:operacion_id>', methods=['GET', 'POST'])
+@login_required
+def borrar_operacion(operacion_id):
+    movimiento = Movimientos.query.get_or_404(operacion_id)
+    target_mes = movimiento.fecha_operacion.strftime('%Y-%m')
+    db.session.delete(movimiento)
+    db.session.commit()
+    flash('Operación eliminada con éxito.', 'success')
+    return redirect(url_for('movimientos_mes', mes=target_mes))
+
+@app.route('/nueva_operacion/<string:tarjeta>', methods=['GET', 'POST'])
+@login_required
+def nueva_operacion(tarjeta):
+    # 1. Look up target credit card ID via its text description name string
+    tarjeta_obj = Tarjetas.query.filter_by(banco=tarjeta).first()
+    if not tarjeta_obj:
+        flash('Tarjeta no válida.', 'danger')
+        return redirect(url_for('index'))
+    descripcion = request.form.get('descripcion')
+    monto_operacion = request.form.get('monto_operacion', type=int)
+    id_tipo_movimiento = request.form.get('id_tipo_movimiento', type=int)
+    fecha_str = request.form.get('fecha_operacion')
+    fecha_operacion = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
+    if id_tipo_movimiento == 10: # 10 es el id de pago
+        gasto = GastosFijos(date=datetime.now(ZoneInfo("America/Asuncion")).replace(tzinfo=None),
+                            fecha_pagar=datetime.strptime(request.form.get('fecha_operacion'), '%Y-%m-%d').date() if request.form.get('fecha_operacion') else date.today(),
+                            descripcion=descripcion,            
+                            monto=monto_operacion,
+                            operacion=False,        
+                            pagado=True,
+                            id_agrupador_gastos=3)
+        db.session.add(gasto)   
+    movimiento = Movimientos(
+        date=datetime.now(ZoneInfo("America/Asuncion")).replace(tzinfo=None),
+        fecha_operacion=fecha_operacion,
+        descripcion=descripcion,
+        monto_operacion=monto_operacion,
+        id_tipo_movimiento=id_tipo_movimiento,
+        id_tarjeta=tarjeta_obj.id  # Links item accurately to the container context
+    )
+    db.session.add(movimiento)
+    db.session.commit()
+    flash('Operación registrada con éxito.', 'success')
+    return redirect(url_for('movimientos_mes', mes=fecha_operacion.strftime('%Y-%m')))
+
+@app.route('/aplicar_descuento/<int:operacion_id>', methods=['POST'])
+@login_required
+def aplicar_descuento(operacion_id):
+    try:
+        porcentaje = float(request.form.get('porcentaje', 0))
+        base_monto = float(request.form.get('base_monto', 0))
+        base_fecha_str = request.form.get('base_fecha')
+        base_tipo = request.form.get('base_tipo')
+        base_descripcion = request.form.get('base_descripcion')
+        id_tarjeta = request.form.get('id_tarjeta') # Capture original card assignment context
+        if porcentaje <= 0 or porcentaje > 100:
+            flash('Porcentaje de descuento inválido.', 'danger')
+            return redirect(request.referrer or url_for('index'))
+        monto_descuento = (abs(base_monto) * (porcentaje / 100.0))
+        fecha_operacion = datetime.strptime(base_fecha_str, '%Y-%m-%d').date() if base_fecha_str else date.today()
+        nueva_descripcion = f"Descuento {int(porcentaje)}% - {base_descripcion}"
+        nuevo_movimiento = Movimientos(
+            date=datetime.utcnow(),
+            fecha_operacion=fecha_operacion,
+            descripcion=nueva_descripcion,
+            monto_operacion=int(round(monto_descuento)), # Store cleanly as integer units
+            id_tipo_movimiento=18, #int(base_tipo) if base_tipo else None, fixed for type Descuento
+            id_tarjeta=int(id_tarjeta) if id_tarjeta else None # Links directly to the same credit card card item
+        )
+        db.session.add(nuevo_movimiento)
+        db.session.commit()
+        flash(f'¡Descuento de {int(porcentaje)}% aplicado y restado del balance de la tarjeta!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al procesar la inserción de descuento: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/historial_operacion', methods=['GET', 'POST'])
+@login_required
+def historial_operacion():
+    operaciones=[]
+    for movimiento in db.session.query(func.strftime("%Y", Movimientos.fecha_operacion).label('fecha_operacion'), Movimientos.id_tipo_movimiento.label('id_tipo_movimiento'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(Movimientos.id_tipo_movimiento==TiposMovimiento.id).group_by(func.strftime("%Y", Movimientos.fecha_operacion), Movimientos.id_tipo_movimiento, TiposMovimiento.tipo).order_by(TiposMovimiento.tipo).all():
+        operaciones.append({'fecha_operacion':movimiento.fecha_operacion, 'id_tipo_movimiento': movimiento.id_tipo_movimiento, 'acreedor': movimiento.acreedor, 'total': movimiento.total})
+    return render_template('historial_operaciones.html', operaciones=operaciones)
+
+@app.route('/historial_operacion_anno/<string:anno>', methods=['GET', 'POST'])
+@login_required
+def historial_operacion_messanno(anno):
+    operaciones = db.session.query(func.strftime("%Y-%m", Movimientos.fecha_operacion).label('fecha'), TiposMovimiento.tipo.label('acreedor'), func.sum(Movimientos.monto_operacion).label('total')).join(TiposMovimiento).filter(func.strftime("%Y", Movimientos.fecha_operacion)==anno).group_by(func.strftime("%Y-%m", Movimientos.fecha_operacion), TiposMovimiento.tipo).all()
+    balance_mes = movimiento_balances_mes_a_mes(anno) # datos de movimientos agrupados por mes y banco
+    months = sorted(list(set(item['mes'] for item in balance_mes))) # lista de meses en el balance
+    banks = sorted(list(set(item['banco'] for item in balance_mes))) # lista de bancos en el balance
+    restructured_data = {bank: {} for bank in banks} # reestructura los datos en un diccionario para facilitar el acceso
+    for item in balance_mes:
+        restructured_data[item['banco']][item['mes']] = item['saldo'] # agrupar banco y mes, y asignar el saldo
+    monthly_totals = {month: 0 for month in months}
+    for item in balance_mes:
+        monthly_totals[item['mes']] += item['saldo'] # calcula el total mensual sumando los saldos de todos los bancos
+    return render_template('historial_operaciones_anno.html', gastos=operaciones, data=restructured_data, months=months, monthly_totals=monthly_totals)
+
+@app.route('/parametrico', methods=['GET', 'POST'])
+@login_required
+def parametrico():
+    tipos_movimiento = TiposMovimiento.query.all()
+    agrupador_gastos = AgrupadorGastos.query.all()
+    gastos_fijos = DeudasPendientes.query.all()
+    tarjetas = resumenes_tarjeta_macro() # Tarjetas.query.all()
+    return render_template('new_parametrico.html', #'parametrico.html', 
+                           tipos_movimiento=tipos_movimiento, 
+                           agrupador_gastos=agrupador_gastos, 
+                           gastos_fijos=gastos_fijos, 
+                           tarjetas=tarjetas)
+
+@app.route('/modificar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+@login_required
+def modificar_parametrico(parametrico_id, origen):
+    form = FormularioParametricos()
+    if origen == 'TIPOS':
+        parametro = TiposMovimiento.query.get(parametrico_id)
+    elif origen == 'AGRUPADORES':
+        parametro = AgrupadorGastos.query.get(parametrico_id)
+    if parametro:
+        if form.validate_on_submit():
+            if origen == 'TIPOS':
+                parametro.tipo = form.descripcion.data
+                # db.session.commit()
+            elif origen == 'AGRUPADORES':
+                parametro.agrupador = form.descripcion.data
+            db.session.commit()
+            flash('Lista de '+ origen +' actualizada.')
+            return redirect(url_for('parametrico'))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        if origen == 'TIPOS':
+            form.descripcion.data = parametro.tipo
+        elif origen == 'AGRUPADORES':
+            form.descripcion.data = parametro.agrupador
+        return render_template('modificar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('parametrico'))
+
+@app.route('/borrar_parametrico/<int:parametrico_id>/<string:origen>', methods=['GET', 'POST'])
+@login_required
+def borrar_parametrico(parametrico_id, origen):
+    form = FormularioParametricos()
+    if origen == 'TIPOS':
+        parametro = TiposMovimiento.query.get(parametrico_id)
+    elif origen == 'AGRUPADORES':
+        parametro = AgrupadorGastos.query.get(parametrico_id)
+    if parametro:
+        if origen == 'TIPOS':
+            form.descripcion.data = parametro.tipo
+        elif origen == 'AGRUPADORES':
+            form.descripcion.data = parametro.agrupador
+        if form.validate_on_submit():
+            db.session.delete(parametro)
+            db.session.commit()
+            flash('Lista de '+ origen +' actualizada.')
+            return redirect(url_for('parametrico'))
+        return render_template('borrar_parametrico.html', form=form, parametrico_id=parametrico_id, origen=origen)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('parametrico'))
+
+@app.route('/nuevo_parametrico/<string:origen>', methods=['GET', 'POST'])
+@login_required
+def nuevo_parametrico(origen):
+    form = FormularioParametricos()
+    if form.validate_on_submit():
+        if origen == 'TIPOS':
+            parametro = TiposMovimiento(tipo=form.descripcion.data)
+        elif origen == 'AGRUPADORES':
+            parametro = AgrupadorGastos(agrupador=form.descripcion.data)
+        db.session.add(parametro)
+        db.session.commit()
+        flash('Nuevo parametro: ' + origen + ' agregado con exito.')
+        return redirect(url_for('parametrico'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('nuevo_parametrico.html', form=form, origen=origen)    
+
+@app.route('/nuevo_gasto', methods=['GET', 'POST'])
+@login_required
+def nuevo_gasto():
+    form = FormularioGastos()
+    if form.fecha_pagar.data is None:
+        form.fecha_pagar.data = datetime.today()
+    if form.validate_on_submit():
+        mes = form.fecha_pagar.data.strftime('%Y-%m') 
+        if not mes: mes = datetime.now().strftime("%Y-%m")
+        carga = GastosFijos(date=datetime.utcnow(),
+                        fecha_pagar=form.fecha_pagar.data,
+                        descripcion=form.descripcion.data, 
+                        monto=form.monto.data,
+                        operacion=form.operacion.data,
+                        pagado=form.pagado.data,
+                        id_agrupador_gastos=form.agrupador.data)
+        db.session.add(carga)
+        db.session.commit()
+        flash('Nueva operacion agregada con exito.') 
+        return redirect(url_for('historico_gastos_detalle', periodo=mes))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('nuevo_gasto.html', form=form)
+
+@app.route('/historico_gastos_detalle/', defaults={'periodo':datetime.now().strftime('%Y-%m')}, methods=['GET', 'POST'])
+@app.route('/historico_gastos_detalle/<string:periodo>', methods=['GET', 'POST'])
+@login_required
+def historico_gastos_detalle(periodo):
+    date_obj = datetime.strptime(periodo, '%Y-%m')
+    fechas={'mes_anterior':date_obj-relativedelta(months=1), 'mes_actual':date_obj, 'mes_siguiente':date_obj+relativedelta(months=1)}
+    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id_agrupador_gastos).all()
+    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar).order_by(GastosFijos.id).all()
+    # gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar,GastosFijos.id_agrupador_gastos).all()
+    gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).order_by(GastosFijos.fecha_pagar, GastosFijos.id).all()
+    if not gastos:
+        precarga_deudas(periodo)
+        gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==periodo).all()
+    deuda = deuda_total(gastos)
+    credito, pendientes, pagados = calcular_disponibilidad(periodo)#SALARIO_NETO -  deuda
+    disponibilidad = credito - pagados
+    balance_movimientos, balance_mensual = balance_cuenta()
+    return render_template('historico_gastos_detalle.html', periodo=periodo, gastos=gastos, deuda=pagados, disponibilidad=disponibilidad, pendientes=pendientes, fechas=fechas, balance_movimientos=balance_movimientos)
+
+@app.route('/modificar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+@login_required
+def modificar_gasto(gasto_id):
+    gasto = GastosFijos.query.get(gasto_id)
+    form = FormularioGastos()
+    if gasto:
+        if form.validate_on_submit(): 
+            mes = gasto.fecha_pagar.strftime('%Y-%m') 
+            gasto.fecha_pagar = form.fecha_pagar.data 
+            gasto.descripcion = form.descripcion.data
+            gasto.monto = form.monto.data
+            gasto.id_agrupador_gastos = form.agrupador.data
+            gasto.operacion = form.operacion.data
+            gasto.pagado = form.pagado.data
+            db.session.commit()
+            flash('Se modifico el gasto con exito.')
+            return redirect(url_for('historico_gastos_detalle', periodo=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        form.fecha_pagar.data = gasto.fecha_pagar
+        form.descripcion.data = gasto.descripcion
+        form.monto.data = gasto.monto
+        form.operacion.data = gasto.operacion 
+        form.pagado.data = gasto.pagado
+        form.agrupador.data = gasto.agrupador_gastos.id
+        return render_template('modificar_gasto.html', form=form, gasto_id=gasto.id)
+    else:
+        flash('No se encontro el gasto a modificar.')
+    return redirect(url_for('index'))
+
+@app.route('/borrar_gasto/<int:gasto_id>', methods=['GET', 'POST'])
+@login_required
+def borrar_gasto(gasto_id):
+    gasto = GastosFijos.query.get(gasto_id)
+    form = FormularioGastos()
+    if gasto:
+        form.fecha_pagar.data = gasto.fecha_pagar
+        form.descripcion.data = gasto.descripcion
+        form.monto.data = gasto.monto
+        form.operacion.data = gasto.operacion 
+        form.pagado.data = gasto.pagado
+        form.agrupador.data = gasto.agrupador_gastos.id
+        form.agrupador_view.data = gasto.agrupador_gastos.agrupador
+        if form.validate_on_submit():
+            mes = gasto.fecha_pagar.strftime('%Y-%m') 
+            db.session.delete(gasto)
+            db.session.commit()
+            flash('Lista de gastos actualizada.')
+            #gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).filter(GastosFijos.descripcion!='REFERENCIA').all()
+            gastos = GastosFijos.query.filter(func.strftime("%Y-%m", GastosFijos.fecha_pagar)==mes).all()
+            if not gastos:
+                return redirect(url_for('index'))
+            return redirect(url_for('historico_gastos_detalle', periodo=mes))
+        else:
+            for k, v in form.errors.items():
+                flash('Error en: '+k)
+        return render_template('borrar_gasto.html', form=form, gasto_id=gasto_id)
+    else:
+        flash('No se encontro la operacion a eliminar.')
+    return redirect(url_for('index'))   
+
+@app.route('/historico_gastos', methods=['GET', 'POST'])
+@login_required
+def historico_gastos():
+    gastos = db.session.query(func.strftime("%Y", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).group_by(func.strftime("%Y", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
+    return render_template('historico_gastos.html', gastos=gastos)
+
+@app.route('/historico_gastos_mesanno/<string:anno>', methods=['GET', 'POST'])
+@login_required
+def historico_gastos_mesanno(anno):
+    gastos = db.session.query(func.strftime("%Y-%m", GastosFijos.fecha_pagar).label('fecha'), AgrupadorGastos.agrupador.label('acreedor'), func.sum(GastosFijos.monto).label('total')).join(AgrupadorGastos).filter(func.strftime("%Y", GastosFijos.fecha_pagar)==anno).group_by(func.strftime("%Y-%m", GastosFijos.fecha_pagar), AgrupadorGastos.agrupador).all()
+    return render_template('historico_gastos_mesanno.html', gastos=gastos)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Felicidades, el usuario ha sido creado existosamente!')
+        return redirect(url_for('login'))
+    else:
+        for k, v in form.errors.items():
+            flash('Error en: '+k)
+    return render_template('new_register.html', title='Registrarse', form=form)
+
 
 #  DOCS: MODULO - CUENTAS => Vista histórica de gastos fijos agrupados por año y mes, con detalle de cada gasto, y métricas de deuda, crédito y disponibilidad para cada periodo 
 @app.route('/gastos_fijos')
@@ -1406,7 +1329,6 @@ def grafica_composicion_deuda():
                          .order_by(func.strftime('%Y', Movimientos.fecha_operacion).desc())\
                          .all()
     anios = [a[0] for a in años_raw if a[0]]
-    print("Años disponibles para la gráfica de composición de deuda:", anios)  # Debug: Verificar los años extraídos
     return render_template('new_grafico_movimientos.html', anios=anios)
 
 
@@ -1662,7 +1584,6 @@ def api_desglose_agrupador():
 @app.route('/api/combustible/modificar/<int:id>', methods=['POST'])
 @login_required  # Descomenta si usas Flask-Login
 def api_modificar_combustible(id):
-    print(f"Recibida solicitud de modificación para Carga ID: {id}")
     try:
         # 1. Buscar el registro exacto usando get_or_404 por seguridad
         carga = Cargas.query.get_or_404(id)
@@ -1916,7 +1837,6 @@ def api_grafica_composicion_deuda():
         query = query.filter(func.strftime('%Y', Movimientos.fecha_operacion) == str(anno_filtro))
         
     movimientos_raw = query.order_by(Movimientos.fecha_operacion.asc()).all()
-    print(f"Movimientos obtenidos para el año {anno_filtro}: {len(movimientos_raw)} registros")  # Debug: Verificar la cantidad de movimientos obtenidos    
     
     etiquetas_meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     valores_consumos = [0] * 12
@@ -1944,3 +1864,5 @@ def api_grafica_composicion_deuda():
         'pagos': valores_pagos,
         'descuentos': valores_descuentos
     })
+
+
